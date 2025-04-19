@@ -73,12 +73,17 @@ ecommerce_api/
    docker-compose up -d
    ```
 
-4. Run database migrations:
+4. Generate the database migrations:
+   ```bash
+    docker-compose exec api alembic revision --autogenerate -m "Initial migration"
+    ```
+
+5. Run database migrations:
    ```bash
    docker-compose exec api alembic upgrade head
    ```
 
-5. Create a superuser:
+6. Create a superuser:
    ```bash
    docker-compose exec api python -m app.initial_data
    ```
