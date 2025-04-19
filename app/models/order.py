@@ -127,6 +127,10 @@ class Order(Base):
         """Check if the order can be refunded."""
         return self.is_paid and self.status not in [OrderStatus.REFUNDED, OrderStatus.FAILED, OrderStatus.CANCELLED]
 
+    @property
+    def item_count(self):
+        """Get the total number of items in the order."""
+        return len(self.items) if hasattr(self, 'items') else 0
 
 class OrderItem(Base):
     """Order item model for items in an order."""

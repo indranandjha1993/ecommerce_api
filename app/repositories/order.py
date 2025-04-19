@@ -149,7 +149,6 @@ class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
 
         # If the order is completed, set the completed_at timestamp
         if status == OrderStatus.COMPLETED and not order.completed_at:
-            from datetime import datetime
             order.completed_at = utcnow()
 
         db.add(order)
@@ -179,10 +178,9 @@ class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
         """
         Generate a unique order number.
         """
-        from datetime import datetime
 
         # Get the current timestamp
-        now = datetime.utcnow()
+        now = utcnow()
         date_part = now.strftime("%Y%m%d")
 
         # Get the current highest order number for today

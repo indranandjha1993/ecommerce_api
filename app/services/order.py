@@ -196,7 +196,7 @@ class OrderService:
             payment_method=order_data.payment_method,
             payment_details=order_data.payment_details,
             coupon_code=coupon_code,
-            order_metadata=order_data.metadata,
+            order_metadata=order_data.order_metadata,
             guest_token=guest_token,
             cart_id=cart.id,
         )
