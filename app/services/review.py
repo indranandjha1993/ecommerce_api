@@ -1,7 +1,6 @@
 import uuid
 from typing import List, Optional, Tuple
 
-from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewReplyCreate, ReviewReplyUpdate
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
@@ -11,6 +10,8 @@ from app.core.exceptions import (
 )
 from app.models.review import Review, ReviewReply
 from app.repositories.review import review_repository
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewReplyCreate, ReviewReplyUpdate
+from app.utils.datetime_utils import utcnow
 
 
 class ReviewService:
@@ -86,7 +87,7 @@ class ReviewService:
         ).first() is not None
 
         # Create review
-        review_data = review_in.dict()
+        review_data = review_in.model_dump()
         review_data["user_id"] = user_id
         review_data["is_verified_purchase"] = verified_purchase
         review_data["moderation_status"] = "pending"  # All reviews need moderation
@@ -109,14 +110,14 @@ class ReviewService:
             raise ForbiddenException(detail="You can only update your own reviews")
 
         # Reset moderation status if content is updated
-        update_data = review_in.dict(exclude_unset=True)
+        update_data = review_in.model_dump(exclude_unset=True)
         if "content" in update_data or "rating" in update_data or "title" in update_data:
             update_data["moderation_status"] = "pending"
             update_data["is_approved"] = False
             update_data["is_edited"] = True
 
             from datetime import datetime
-            update_data["edited_at"] = datetime.utcnow()
+            update_data["edited_at"] = utcnow()
 
         return review_repository.update(db, db_obj=review, obj_in=update_data)
 

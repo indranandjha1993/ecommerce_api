@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -14,6 +13,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
+from app.utils.datetime_utils import utcnow
 
 
 class ProductVariant(Base):
@@ -43,8 +43,8 @@ class ProductVariant(Base):
     additional_data = Column(JSONB, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     product = relationship("Product", back_populates="variants")
@@ -93,8 +93,8 @@ class ProductVariantAttribute(Base):
     attribute_value_id = Column(UUID(as_uuid=True), ForeignKey("product_attribute_values.id"), nullable=False)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     variant = relationship("ProductVariant", back_populates="variant_attributes")

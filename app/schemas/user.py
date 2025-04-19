@@ -2,7 +2,13 @@ import datetime
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    field_validator,
+    ConfigDict
+)
 
 
 # Shared properties
@@ -22,11 +28,26 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
     confirm_password: str
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values, **kwargs):
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
+        # In Pydantic V2, access values differently
+        values = info.data
         if 'password' in values and v != values['password']:
             raise ValueError('Passwords do not match')
         return v
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "password": "strongpassword123",
+                "confirm_password": "strongpassword123",
+                "first_name": "John",
+                "last_name": "Doe"
+            }
+        }
+    )
 
 
 # Properties to receive via API on update
@@ -35,11 +56,23 @@ class UserUpdate(UserBase):
     password: Optional[str] = Field(None, min_length=8)
     current_password: Optional[str] = None
 
-    @validator('password')
-    def password_strength(cls, v, values, **kwargs):
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v, info):
         if v is not None and len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
         return v
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "first_name": "Updated",
+                "last_name": "Name",
+                "current_password": "oldpassword123",
+                "password": "newstrongpassword123"
+            }
+        }
+    )
 
 
 # Properties shared by models stored in DB
@@ -52,8 +85,7 @@ class UserInDBBase(UserBase):
     updated_at: datetime.datetime
     last_login: Optional[datetime.datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Properties to return to client
@@ -89,6 +121,15 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "password": "yourpassword123"
+            }
+        }
+    )
+
 
 # Password reset request schema
 class PasswordResetRequest(BaseModel):
@@ -103,11 +144,23 @@ class PasswordReset(BaseModel):
     password: str = Field(..., min_length=8)
     confirm_password: str
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values, **kwargs):
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
+        values = info.data
         if 'password' in values and v != values['password']:
             raise ValueError('Passwords do not match')
         return v
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "token": "reset_token_here",
+                "password": "newstrongpassword123",
+                "confirm_password": "newstrongpassword123"
+            }
+        }
+    )
 
 
 # Email verification schema

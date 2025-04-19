@@ -3,7 +3,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Tuple, Dict, Any
 
-from app.schemas.coupon import CouponCreate, CouponUpdate
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
@@ -12,6 +11,7 @@ from app.core.exceptions import (
 )
 from app.models.coupon import Coupon, DiscountType
 from app.repositories.coupon import coupon_repository
+from app.schemas.coupon import CouponCreate, CouponUpdate
 
 
 class CouponService:

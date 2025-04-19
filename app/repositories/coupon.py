@@ -2,12 +2,13 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from app.schemas.coupon import CouponCreate, CouponUpdate
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.coupon import Coupon, CouponUsage
 from app.repositories.base import BaseRepository
+from app.schemas.coupon import CouponCreate, CouponUpdate
+from app.utils.datetime_utils import utcnow
 
 
 class CouponRepository(BaseRepository[Coupon, CouponCreate, CouponUpdate]):
@@ -49,7 +50,7 @@ class CouponRepository(BaseRepository[Coupon, CouponCreate, CouponUpdate]):
         """
         Get valid coupons with pagination.
         """
-        now = datetime.utcnow()
+        now = utcnow()
 
         query = (
             db.query(Coupon)
@@ -85,7 +86,7 @@ class CouponRepository(BaseRepository[Coupon, CouponCreate, CouponUpdate]):
         """
         Get expired coupons with pagination.
         """
-        now = datetime.utcnow()
+        now = utcnow()
 
         query = (
             db.query(Coupon)

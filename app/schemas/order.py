@@ -39,8 +39,7 @@ class OrderItemInDBBase(OrderItemBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class OrderItem(OrderItemInDBBase):
@@ -86,8 +85,7 @@ class PaymentInDBBase(PaymentBase):
     updated_at: datetime.datetime
     processed_at: Optional[datetime.datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class Payment(PaymentInDBBase):
@@ -128,8 +126,7 @@ class ShippingInDBBase(ShippingBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class Shipping(ShippingInDBBase):
@@ -201,8 +198,7 @@ class OrderInDBBase(OrderBase):
     updated_at: datetime.datetime
     completed_at: Optional[datetime.datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class OrderInDB(OrderInDBBase):
@@ -232,8 +228,7 @@ class OrderSummary(BaseModel):
     completed_at: Optional[datetime.datetime] = None
     item_count: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 # Order list

@@ -58,10 +58,10 @@ class AddressRepository(BaseRepository[Address, AddressCreate, AddressUpdate]):
                 Address.user_id == user_id,
                 Address.address_type == obj_in.address_type
             ).update({"is_default": False})
-            obj_in_data = obj_in.dict()
+            obj_in_data = obj_in.model_dump()
             obj_in_data["is_default"] = True
         else:
-            obj_in_data = obj_in.dict()
+            obj_in_data = obj_in.model_dump()
 
         # Create address
         db_obj = Address(

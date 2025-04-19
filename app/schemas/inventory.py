@@ -46,8 +46,7 @@ class InventoryLocationInDBBase(InventoryLocationBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class InventoryLocation(InventoryLocationInDBBase):
@@ -92,8 +91,7 @@ class InventoryInDBBase(InventoryBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class Inventory(InventoryInDBBase):
@@ -126,8 +124,7 @@ class StockMovementInDBBase(StockMovementBase):
     id: uuid.UUID
     created_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class StockMovement(StockMovementInDBBase):

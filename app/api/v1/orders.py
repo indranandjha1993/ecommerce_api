@@ -162,7 +162,7 @@ def update_user_order(
 
     # Update only allowed fields for users
     allowed_fields = ["customer_notes"]
-    update_data = {k: v for k, v in order_in.dict(exclude_unset=True).items() if k in allowed_fields}
+    update_data = {k: v for k, v in order_in.model_dump(exclude_unset=True).items() if k in allowed_fields}
 
     if not update_data:
         return order

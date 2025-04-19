@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from app.utils.datetime_utils import utcnow
+
 
 def test_list_products(client):
     """
@@ -327,21 +329,21 @@ def test_new_arrivals(client, db):
             slug="new-product-1",
             price=Decimal("299.99"),
             is_active=True,
-            created_at=datetime.utcnow()
+            created_at=utcnow()
         ),
         Product(
             name="New Product 2",
             slug="new-product-2",
             price=Decimal("399.99"),
             is_active=True,
-            created_at=datetime.utcnow() - timedelta(days=1)
+            created_at=utcnow() - timedelta(days=1)
         ),
         Product(
             name="Old Product",
             slug="old-product",
             price=Decimal("199.99"),
             is_active=True,
-            created_at=datetime.utcnow() - timedelta(days=30)
+            created_at=utcnow() - timedelta(days=30)
         )
     ]
 
@@ -416,7 +418,7 @@ def test_bestsellers(client, db):
         subtotal=Decimal("1000.00"),  # Add required field
         total_amount=Decimal("1000.00"),
         customer_email=user.email,  # Add required field
-        created_at=datetime.utcnow()
+        created_at=utcnow()
     )
     db.add(order)
     db.commit()

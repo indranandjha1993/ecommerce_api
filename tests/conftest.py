@@ -92,14 +92,32 @@ def superuser_token_headers(client):
     from app.core.security import create_access_token
     from app.db.init_db import create_superuser
     from app.models.user import User
+    from app.core.config import settings
 
     # Create a superuser in the test database
-    superuser_email = "admin@example.com"  # Use a test admin email
-    create_superuser(TestingSessionLocal())
+    db_session = TestingSessionLocal()
+    create_superuser(db_session)
 
     # Create a token for the superuser
-    user = TestingSessionLocal().query(User).filter(User.email == superuser_email).first()
+    user = db_session.query(User).filter(User.is_superuser == True).first()
+    if not user:
+        # If no superuser found, create one directly
+        from app.core.security import get_password_hash
+        user = User(
+            email=settings.ADMIN_EMAIL,
+            password_hash=get_password_hash("admin"),
+            first_name="Admin",
+            last_name="User",
+            is_active=True,
+            is_superuser=True,
+            is_verified=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+    
     access_token = create_access_token(str(user.id))
+    db_session.close()
 
     return {"Authorization": f"Bearer {access_token}"}
 

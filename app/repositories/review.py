@@ -1,11 +1,12 @@
 import uuid
 from typing import List, Optional, Tuple
 
-from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewReplyCreate, ReviewReplyUpdate
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.review import Review, ReviewReply
 from app.repositories.base import BaseRepository
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewReplyCreate, ReviewReplyUpdate
+from app.utils.datetime_utils import utcnow
 
 
 class ReviewRepository(BaseRepository[Review, ReviewCreate, ReviewUpdate]):
@@ -131,13 +132,13 @@ class ReviewRepository(BaseRepository[Review, ReviewCreate, ReviewUpdate]):
         """
         Update a reply.
         """
-        update_data = reply_in.dict(exclude_unset=True)
+        update_data = reply_in.model_dump(exclude_unset=True)
 
         # Mark as edited if content is changed
         if "content" in update_data and update_data["content"] != db_reply.content:
             from datetime import datetime
             update_data["is_edited"] = True
-            update_data["edited_at"] = datetime.utcnow()
+            update_data["edited_at"] = utcnow()
 
         for field in update_data:
             setattr(db_reply, field, update_data[field])
@@ -177,7 +178,7 @@ class ReviewRepository(BaseRepository[Review, ReviewCreate, ReviewUpdate]):
         review.moderation_status = moderation_status
         review.moderation_notes = moderation_notes
         review.moderated_by = moderator_id
-        review.moderated_at = datetime.utcnow()
+        review.moderated_at = utcnow()
 
         # If approved, update is_approved flag
         if moderation_status == "approved":

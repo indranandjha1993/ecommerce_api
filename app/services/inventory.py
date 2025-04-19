@@ -1,12 +1,6 @@
 import uuid
 from typing import List, Optional, Tuple
 
-from app.schemas.inventory import (
-    InventoryUpdate,
-    InventoryLocationCreate,
-    InventoryLocationUpdate,
-    StockMovementCreate
-)
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
@@ -15,6 +9,11 @@ from app.core.exceptions import (
 )
 from app.models.inventory import Inventory, InventoryLocation, StockMovement, StockMovementType
 from app.repositories.inventory import inventory_repository, inventory_location_repository
+from app.schemas.inventory import (
+    InventoryLocationCreate,
+    InventoryLocationUpdate,
+    StockMovementCreate
+)
 
 
 class InventoryService:

@@ -64,8 +64,7 @@ class ReviewReplyInDBBase(ReviewReplyBase):
     moderated_by: Optional[uuid.UUID] = None
     moderated_at: Optional[datetime.datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class ReviewReply(ReviewReplyInDBBase):
@@ -92,8 +91,7 @@ class ReviewInDBBase(ReviewBase):
     is_edited: bool
     edited_at: Optional[datetime.datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class Review(ReviewInDBBase):

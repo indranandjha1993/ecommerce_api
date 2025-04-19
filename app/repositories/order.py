@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.order import Order, OrderStatus, PaymentStatus
 from app.repositories.base import BaseRepository
 from app.schemas.order import OrderCreate, OrderUpdate
+from app.utils.datetime_utils import utcnow
 
 
 class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
@@ -149,7 +150,7 @@ class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
         # If the order is completed, set the completed_at timestamp
         if status == OrderStatus.COMPLETED and not order.completed_at:
             from datetime import datetime
-            order.completed_at = datetime.utcnow()
+            order.completed_at = utcnow()
 
         db.add(order)
         db.commit()

@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -10,6 +9,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.session import Base
+from app.utils.datetime_utils import utcnow
 
 
 class User(Base):
@@ -28,8 +28,8 @@ class User(Base):
     is_verified = Column(Boolean(), default=False)
     verification_token = Column(String(255), nullable=True)
     reset_password_token = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     last_login = Column(DateTime, nullable=True)
 
     # Relationships are set dynamically in the configure_relationships function

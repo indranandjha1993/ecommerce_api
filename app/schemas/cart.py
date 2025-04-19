@@ -35,8 +35,7 @@ class CartItemInDBBase(CartItemBase):
     added_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class CartItemInDB(CartItemInDBBase):
@@ -78,8 +77,7 @@ class CartInDBBase(CartBase):
     updated_at: datetime.datetime
     last_activity: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class CartInDB(CartInDBBase):
@@ -101,5 +99,4 @@ class CartSummary(BaseModel):
     item_count: int
     subtotal: Decimal
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

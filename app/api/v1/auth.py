@@ -28,6 +28,7 @@ from app.schemas.user import (
     PasswordReset,
     EmailVerification,
 )
+from app.utils.datetime_utils import utcnow
 
 router = APIRouter()
 
@@ -81,9 +82,8 @@ def login(
         raise UnauthorizedException(detail="Inactive user")
 
     # Update last login timestamp
-    from sqlalchemy import func
     from datetime import datetime
-    user.last_login = datetime.utcnow()
+    user.last_login = utcnow()
     db.add(user)
     db.commit()
 
@@ -116,7 +116,7 @@ def login_email(
 
     # Update last login timestamp
     from datetime import datetime
-    user.last_login = datetime.utcnow()
+    user.last_login = utcnow()
     db.add(user)
     db.commit()
 

@@ -6,6 +6,7 @@ from jose import jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.utils.datetime_utils import utcnow
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -37,9 +38,9 @@ def create_access_token(
     Create a JWT access token.
     """
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     to_encode = {"exp": expire, "sub": str(subject)}
@@ -54,9 +55,9 @@ def create_refresh_token(
     Create a JWT refresh token.
     """
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 2
         )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}

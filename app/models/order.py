@@ -1,6 +1,5 @@
 import enum
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Column,
@@ -16,6 +15,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
+from app.utils.datetime_utils import utcnow
 
 
 class OrderStatus(str, enum.Enum):
@@ -93,8 +93,8 @@ class Order(Base):
     guest_token = Column(String(255), nullable=True, unique=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     # If order was created from a cart
@@ -157,8 +157,8 @@ class OrderItem(Base):
     options = Column(JSONB, nullable=True)  # Store selected options, customizations
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     order = relationship("Order", back_populates="items")
@@ -196,8 +196,8 @@ class Refund(Base):
     refund_metadata = Column(JSONB, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     processed_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -228,7 +228,7 @@ class RefundItem(Base):
     refund_item_metadata = Column(JSONB, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     refund = relationship("Refund", back_populates="items")

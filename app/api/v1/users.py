@@ -57,7 +57,7 @@ def update_current_user(
         raise BadRequestException(detail="Current password is required")
 
     # Update user data
-    for key, value in user_in.dict(exclude_unset=True).items():
+    for key, value in user_in.model_dump(exclude_unset=True).items():
         if key == "password":
             current_user.password_hash = get_password_hash(value)
         elif key == "current_password":
@@ -149,7 +149,7 @@ def update_user(
         raise NotFoundException(detail="User not found")
 
     # Update user data
-    for key, value in user_in.dict(exclude_unset=True).items():
+    for key, value in user_in.model_dump(exclude_unset=True).items():
         if key == "password":
             user.password_hash = get_password_hash(value)
         elif key == "current_password":
@@ -228,7 +228,7 @@ def create_current_user_address(
     # Create new address
     db_address = Address(
         user_id=current_user.id,
-        **address_in.dict()
+        **address_in.model_dump()
     )
     db.add(db_address)
     db.commit()
@@ -290,7 +290,7 @@ def update_current_user_address(
         ).update({"is_default": False})
 
     # Update address
-    for key, value in address_in.dict(exclude_unset=True).items():
+    for key, value in address_in.model_dump(exclude_unset=True).items():
         setattr(address, key, value)
 
     db.add(address)

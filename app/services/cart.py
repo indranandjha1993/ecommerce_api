@@ -11,6 +11,7 @@ from app.models.cart import Cart, CartItem
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.repositories.cart import cart_repository
+from app.utils.datetime_utils import utcnow
 
 
 class CartService:
@@ -238,7 +239,7 @@ class CartService:
             raise BadRequestException(detail="Invalid coupon code")
 
         # Check if coupon is valid (dates, usage limits)
-        now = datetime.utcnow()
+        now = utcnow()
 
         if coupon.starts_at and coupon.starts_at > now:
             raise BadRequestException(detail="Coupon is not yet active")

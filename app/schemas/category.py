@@ -42,8 +42,7 @@ class CategoryInDBBase(CategoryBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 # Properties to return to client
@@ -58,7 +57,7 @@ class CategoryTreeItem(Category):
     children: List['CategoryTreeItem'] = []
 
 
-CategoryTreeItem.update_forward_refs()
+CategoryTreeItem.model_rebuild()
 
 
 # Schema for category with parent reference

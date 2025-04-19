@@ -2,7 +2,6 @@
 Cart model for managing shopping carts.
 """
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +16,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
+from app.utils.datetime_utils import utcnow
 
 
 class Cart(Base):
@@ -37,9 +37,9 @@ class Cart(Base):
     is_active = Column(Boolean, default=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_activity = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    last_activity = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     user = relationship("User", back_populates="carts")
@@ -82,8 +82,8 @@ class CartItem(Base):
     item_metadata = Column(JSONB, nullable=True)
 
     # Metadata
-    added_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    added_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     cart = relationship("Cart", back_populates="items")

@@ -314,7 +314,7 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         Create a product with related entities.
         """
         # Create the product
-        product_data = obj_in.dict(
+        product_data = obj_in.model_dump(
             exclude={"attributes", "variants", "images"}
         )
         db_product = Product(**product_data)
@@ -347,7 +347,7 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         # Add product variants
         if obj_in.variants:
             for variant in obj_in.variants:
-                variant_data = variant.dict(exclude={"attributes"})
+                variant_data = variant.model_dump(exclude={"attributes"})
                 db_variant = ProductVariant(
                     product_id=db_product.id,
                     **variant_data
@@ -390,7 +390,7 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         Update a product with related entities.
         """
         # Update the product
-        update_data = obj_in.dict(exclude_unset=True)
+        update_data = obj_in.model_dump(exclude_unset=True)
         for field in update_data:
             setattr(db_obj, field, update_data[field])
 

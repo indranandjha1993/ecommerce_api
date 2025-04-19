@@ -83,7 +83,7 @@ class UserService:
             raise NotFoundException(detail="User not found")
 
         # Handle password update
-        update_data = user_in.dict(exclude_unset=True)
+        update_data = user_in.model_dump(exclude_unset=True)
         if "password" in update_data and "current_password" in update_data:
             if not verify_password(update_data["current_password"], user.password_hash):
                 raise BadRequestException(detail="Incorrect password")

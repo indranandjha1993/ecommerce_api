@@ -3,7 +3,7 @@ import uuid
 from decimal import Decimal
 from typing import List, Optional, Dict, Any
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from app.models.coupon import DiscountType
 
@@ -36,12 +36,12 @@ class CouponBase(BaseModel):
     customer_ids: Optional[List[uuid.UUID]] = None
     coupon_metadata: Optional[Dict[str, Any]] = None
 
-    @validator('code')
+    @field_validator('code')
     def code_must_be_uppercase(cls, v):
         """Validate that the coupon code is uppercase."""
         return v.upper()
 
-    @validator('discount_value')
+    @field_validator('discount_value')
     def validate_discount_value(cls, v, values):
         """Validate discount value based on discount type."""
         if 'discount_type' in values:
@@ -49,7 +49,7 @@ class CouponBase(BaseModel):
                 raise ValueError("Percentage discount cannot exceed 100%")
         return v
 
-    @validator('buy_quantity', 'get_quantity')
+    @field_validator('buy_quantity', 'get_quantity')
     def validate_buy_x_get_y(cls, v, values):
         """Validate buy X get Y quantities."""
         if 'discount_type' in values and values['discount_type'] == DiscountType.BUY_X_GET_Y:
@@ -90,14 +90,14 @@ class CouponUpdate(BaseModel):
     customer_ids: Optional[List[uuid.UUID]] = None
     coupon_metadata: Optional[Dict[str, Any]] = None
 
-    @validator('code')
+    @field_validator('code')
     def code_must_be_uppercase(cls, v):
         """Validate that the coupon code is uppercase."""
         if v is not None:
             return v.upper()
         return v
 
-    @validator('discount_value')
+    @field_validator('discount_value')
     def validate_discount_value(cls, v, values):
         """Validate discount value based on discount type."""
         if v is not None and 'discount_type' in values and values['discount_type'] is not None:
@@ -114,8 +114,7 @@ class CouponInDBBase(CouponBase):
     updated_at: datetime.datetime
     created_by: Optional[uuid.UUID] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class Coupon(CouponInDBBase):
@@ -140,8 +139,7 @@ class CouponUsageInDBBase(CouponUsageBase):
     id: uuid.UUID
     created_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class CouponUsage(CouponUsageInDBBase):

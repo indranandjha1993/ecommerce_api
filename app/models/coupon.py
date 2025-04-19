@@ -1,6 +1,5 @@
 import enum
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +16,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
+from app.utils.datetime_utils import utcnow
 
 
 class DiscountType(str, enum.Enum):
@@ -80,8 +80,8 @@ class Coupon(Base):
     coupon_metadata = Column(JSONB, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     # Relationships
@@ -96,14 +96,14 @@ class Coupon(Base):
         """Check if the coupon is expired."""
         if not self.expires_at:
             return False
-        return self.expires_at < datetime.utcnow()
+        return self.expires_at < utcnow()
 
     @property
     def is_started(self):
         """Check if the coupon has started."""
         if not self.starts_at:
             return True
-        return self.starts_at <= datetime.utcnow()
+        return self.starts_at <= utcnow()
 
     @property
     def is_valid(self):
@@ -132,7 +132,7 @@ class CouponUsage(Base):
     discount_amount = Column(Numeric(precision=10, scale=2), nullable=False)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     coupon = relationship("Coupon", back_populates="usage_history")

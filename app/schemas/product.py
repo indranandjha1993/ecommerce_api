@@ -3,9 +3,10 @@ import uuid
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
+
 from app.schemas.brand import Brand
 from app.schemas.category import Category
-from pydantic import BaseModel
 
 
 # ProductImage schemas
@@ -35,8 +36,7 @@ class ProductImageInDBBase(ProductImageBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductImage(ProductImageInDBBase):
@@ -69,8 +69,7 @@ class ProductAttributeInDBBase(ProductAttributeBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductAttribute(ProductAttributeInDBBase):
@@ -102,8 +101,7 @@ class ProductAttributeValueInDBBase(ProductAttributeValueBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductAttributeValueWithAttribute(ProductAttributeValueInDBBase):
@@ -135,8 +133,7 @@ class ProductVariantAttributeInDB(ProductVariantAttributeBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductVariantAttribute(BaseModel):
@@ -144,8 +141,7 @@ class ProductVariantAttribute(BaseModel):
     attribute: ProductAttribute
     attribute_value: ProductAttributeValue
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductVariantBase(BaseModel):
@@ -179,8 +175,7 @@ class ProductVariantInDBBase(ProductVariantBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductVariant(ProductVariantInDBBase):
@@ -258,8 +253,7 @@ class ProductInDBBase(ProductBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductInDB(ProductInDBBase):
@@ -301,8 +295,7 @@ class ProductListItem(BaseModel):
     category: Optional[Category] = None
     brand: Optional[Brand] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ProductList(BaseModel):

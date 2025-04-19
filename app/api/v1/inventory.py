@@ -237,7 +237,7 @@ def create_stock_movement(
     """
     Create a stock movement record. Only for superusers.
     """
-    movement_data = movement_in.dict()
+    movement_data = movement_in.model_dump()
 
     # Add user ID if not provided
     if not movement_data.get("user_id"):

@@ -4,16 +4,16 @@ Inventory repository for data access operations.
 import uuid
 from typing import List, Optional, Tuple, Any
 
+from sqlalchemy.orm import Session, joinedload
+
+from app.models.inventory import Inventory, InventoryLocation, StockMovement, StockMovementType
+from app.repositories.base import BaseRepository
 from app.schemas.inventory import (
     InventoryUpdate,
     InventoryLocationCreate,
     InventoryLocationUpdate,
     StockMovementCreate
 )
-from sqlalchemy.orm import Session, joinedload
-
-from app.models.inventory import Inventory, InventoryLocation, StockMovement, StockMovementType
-from app.repositories.base import BaseRepository
 
 
 class InventoryRepository(BaseRepository[Inventory, Any, InventoryUpdate]):
@@ -318,7 +318,7 @@ class InventoryLocationRepository(BaseRepository[InventoryLocation, InventoryLoc
         if existing_location:
             raise ValueError(f"Location with code '{obj_in.code}' already exists")
 
-        db_obj = InventoryLocation(**obj_in.dict())
+        db_obj = InventoryLocation(**obj_in.model_dump())
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

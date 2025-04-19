@@ -15,6 +15,7 @@ from app.models.shipping import Shipping, ShippingStatus, ShippingCarrier
 from app.repositories.order import order_repository
 from app.schemas.order import OrderCreate, OrderUpdate, OrderAdminUpdate
 from app.services.cart import cart_service
+from app.utils.datetime_utils import utcnow
 
 
 class OrderService:
@@ -116,7 +117,7 @@ class OrderService:
         shipping_address = Address(
             user_id=user_id,
             address_type="shipping",
-            **order_data.shipping_address.dict()
+            **order_data.shipping_address.model_dump()
         )
         db.add(shipping_address)
         db.flush()
@@ -128,7 +129,7 @@ class OrderService:
             billing_address = Address(
                 user_id=user_id,
                 address_type="billing",
-                **order_data.billing_address.dict()
+                **order_data.billing_address.model_dump()
             )
             db.add(billing_address)
             db.flush()
@@ -278,7 +279,7 @@ class OrderService:
             raise NotFoundException(detail="Order not found")
 
         # Update order fields
-        update_data = order_in.dict(exclude_unset=True)
+        update_data = order_in.model_dump(exclude_unset=True)
 
         # Handle status change
         if "status" in update_data:
@@ -290,7 +291,7 @@ class OrderService:
             # Set completed_at timestamp if order is being completed
             if new_status == OrderStatus.COMPLETED and not order.completed_at:
                 from datetime import datetime
-                update_data["completed_at"] = datetime.utcnow()
+                update_data["completed_at"] = utcnow()
 
         # Update order
         order = order_repository.update(db, db_obj=order, obj_in=update_data)
@@ -306,7 +307,7 @@ class OrderService:
             raise NotFoundException(detail="Order not found")
 
         # Update order fields
-        update_data = order_in.dict(exclude_unset=True)
+        update_data = order_in.model_dump(exclude_unset=True)
 
         # Handle status change
         if "status" in update_data:
@@ -315,7 +316,7 @@ class OrderService:
             # Set completed_at timestamp if order is being completed
             if new_status == OrderStatus.COMPLETED and not order.completed_at:
                 from datetime import datetime
-                update_data["completed_at"] = datetime.utcnow()
+                update_data["completed_at"] = utcnow()
 
         # Update order
         order = order_repository.update(db, db_obj=order, obj_in=update_data)
@@ -447,9 +448,9 @@ class OrderService:
             # Update shipped_at and delivered_at timestamps
             from datetime import datetime
             if status == ShippingStatus.IN_TRANSIT and not shipping.shipped_at:
-                shipping.shipped_at = datetime.utcnow()
+                shipping.shipped_at = utcnow()
             elif status == ShippingStatus.DELIVERED and not shipping.delivered_at:
-                shipping.delivered_at = datetime.utcnow()
+                shipping.delivered_at = utcnow()
 
             # Update order status based on shipping status
             if status == ShippingStatus.DELIVERED:

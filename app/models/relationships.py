@@ -6,7 +6,6 @@ def configure_relationships():
     from sqlalchemy.orm import relationship
     from app.models.user import User
     from app.models.address import Address
-    from app.models.review import Review
 
     # Remove the relationships defined in the model classes
     # and define them here explicitly
