@@ -91,19 +91,31 @@ class Coupon(Base):
     def __repr__(self):
         return f"<Coupon(id={self.id}, code={self.code}, type={self.discount_type}, value={self.discount_value})>"
 
+    def _normalize_datetime(self, dt):
+        """Normalize datetime for comparison by removing timezone info."""
+        if dt is None:
+            return None
+        if dt.tzinfo:
+            return dt.replace(tzinfo=None)
+        return dt
+
     @property
     def is_expired(self):
         """Check if the coupon is expired."""
         if not self.expires_at:
             return False
-        return self.expires_at < utcnow()
+        now = self._normalize_datetime(utcnow())
+        expires_at = self._normalize_datetime(self.expires_at)
+        return expires_at < now
 
     @property
     def is_started(self):
         """Check if the coupon has started."""
         if not self.starts_at:
             return True
-        return self.starts_at <= utcnow()
+        now = self._normalize_datetime(utcnow())
+        starts_at = self._normalize_datetime(self.starts_at)
+        return starts_at <= now
 
     @property
     def is_valid(self):

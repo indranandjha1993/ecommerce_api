@@ -42,7 +42,17 @@ class Brand(Base):
     def __repr__(self):
         return f"<Brand(id={self.id}, name={self.name})>"
 
+    # Store the product count as a private attribute
+    _product_count = None
+
     @property
     def product_count(self):
         """Get the number of products associated with this brand."""
+        if self._product_count is not None:
+            return self._product_count
         return len(self.products)
+    
+    @product_count.setter
+    def product_count(self, value):
+        """Set the product count."""
+        self._product_count = value

@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.models.inventory import StockStatus, StockMovementType
 from app.schemas.product import Product, ProductVariant
@@ -100,6 +100,8 @@ class Inventory(InventoryInDBBase):
     variant: Optional[ProductVariant] = None
     location: Optional[InventoryLocation] = None
     available_quantity: int
+    
+    model_config = {"from_attributes": True}
 
 
 # Stock Movement schemas
@@ -164,8 +166,8 @@ class InventoryLocationList(BaseModel):
 # Schemas for inventory adjustments
 class InventoryAdjustment(BaseModel):
     """Schema for inventory adjustment."""
-    quantity: int
-    notes: Optional[str] = None
+    adjustment: int
+    reason: Optional[str] = None
 
 
 class InventoryReservation(BaseModel):

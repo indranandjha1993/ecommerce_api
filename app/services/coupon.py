@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -12,12 +11,21 @@ from app.core.exceptions import (
 from app.models.coupon import Coupon, DiscountType
 from app.repositories.coupon import coupon_repository
 from app.schemas.coupon import CouponCreate, CouponUpdate
+from app.utils.datetime_utils import utcnow
 
 
 class CouponService:
     """
     Coupon service for business logic.
     """
+    
+    def _normalize_datetime(self, dt):
+        """Normalize datetime for comparison by removing timezone info."""
+        if dt is None:
+            return None
+        if dt.tzinfo:
+            return dt.replace(tzinfo=None)
+        return dt
 
     def get_by_id(self, db: Session, coupon_id: uuid.UUID) -> Coupon:
         """
@@ -69,6 +77,14 @@ class CouponService:
         """
         Create a new coupon.
         """
+        # Validate percentage discount
+        if coupon_in.discount_type == DiscountType.PERCENTAGE and coupon_in.discount_value > 100:
+            raise BadRequestException(detail="Percentage discount cannot exceed 100%")
+        
+        # Validate negative discount
+        if coupon_in.discount_value < 0:
+            raise BadRequestException(detail="Discount value cannot be negative")
+            
         try:
             return coupon_repository.create_with_code_check(db, obj_in=coupon_in)
         except ValueError as e:
@@ -119,13 +135,17 @@ class CouponService:
             raise BadRequestException(detail="This coupon is inactive")
 
         # Check start date
-        now = datetime.utcnow()
-        if coupon.starts_at and coupon.starts_at > now:
-            raise BadRequestException(detail="This coupon is not yet active")
+        now = self._normalize_datetime(utcnow())
+        if coupon.starts_at:
+            starts_at = self._normalize_datetime(coupon.starts_at)
+            if starts_at > now:
+                raise BadRequestException(detail="This coupon is not yet active")
 
         # Check expiry date
-        if coupon.expires_at and coupon.expires_at < now:
-            raise BadRequestException(detail="This coupon has expired")
+        if coupon.expires_at:
+            expires_at = self._normalize_datetime(coupon.expires_at)
+            if expires_at < now:
+                raise BadRequestException(detail="This coupon has expired")
 
         # Check usage limit
         if coupon.usage_limit and coupon.current_usage_count >= coupon.usage_limit:

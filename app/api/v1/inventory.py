@@ -7,6 +7,7 @@ from app.api.dependencies.auth import (
     get_current_active_superuser,
 )
 from app.api.dependencies.pagination import PaginationParams, get_pagination
+from app.core.exceptions import NotFoundException, BadRequestException
 from app.db.session import get_db
 from app.models.inventory import StockMovementType
 from app.models.user import User
@@ -22,7 +23,7 @@ from app.schemas.inventory import (
     StockMovementCreate,
     StockMovementList,
     InventoryAdjustment,
-    InventoryReservation,
+    InventoryReservation, InventoryCreate,
 )
 from app.services.inventory import inventory_service
 
@@ -30,6 +31,44 @@ router = APIRouter()
 
 
 # Inventory endpoints
+@router.post("", response_model=Inventory, status_code=status.HTTP_201_CREATED)
+def create_inventory(
+        *,
+        db: Session = Depends(get_db),
+        inventory_in: InventoryCreate,
+        current_user: User = Depends(get_current_active_superuser),
+) -> Any:
+    """
+    Create inventory for a product. Only for superusers.
+    """
+    # Check if product exists
+    from app.models.product import Product
+    product = db.query(Product).filter(Product.id == inventory_in.product_id).first()
+    if not product:
+        raise NotFoundException(detail="Product not found")
+    
+    # Check if inventory already exists for this product/variant
+    # Use the repository directly to avoid the NotFoundException
+    from app.repositories.inventory import inventory_repository
+    existing_inventory = inventory_repository.get_by_product(
+        db, product_id=inventory_in.product_id, variant_id=inventory_in.variant_id
+    )
+    
+    if existing_inventory:
+        raise BadRequestException(detail="Inventory already exists for this product/variant")
+    
+    # Create inventory
+    from app.models.inventory import Inventory
+    inventory = Inventory(**inventory_in.model_dump())
+    db.add(inventory)
+    db.commit()
+    db.refresh(inventory)
+    
+    # Get the inventory with relations for the response
+    inventory_with_relations = inventory_service.get_by_id(db, inventory_id=inventory.id)
+    
+    return inventory_with_relations
+
 @router.get("/product/{product_id}", response_model=Inventory)
 def read_product_inventory(
         *,
@@ -149,12 +188,18 @@ def adjust_inventory(
     """
     Adjust inventory quantity. Only for superusers.
     """
+    # Check if adjustment would result in negative quantity
+    inventory = inventory_service.get_by_id(db, inventory_id=inventory_id)
+    if inventory.quantity + adjustment.adjustment < 0:
+        from app.core.exceptions import BadRequestException
+        raise BadRequestException(detail="Cannot adjust inventory to a negative quantity")
+    
     inventory, _ = inventory_service.adjust_quantity(
         db,
         inventory_id=inventory_id,
-        change=adjustment.quantity,
+        change=adjustment.adjustment,
         movement_type=StockMovementType.ADJUSTMENT,
-        notes=adjustment.notes,
+        notes=adjustment.reason,
         user_id=current_user.id
     )
     return inventory

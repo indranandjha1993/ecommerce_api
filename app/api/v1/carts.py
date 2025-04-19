@@ -21,6 +21,39 @@ from app.services.cart import cart_service
 router = APIRouter()
 
 
+@router.post("", response_model=Cart, status_code=status.HTTP_201_CREATED)
+def create_cart(
+        db: Session = Depends(get_db),
+        current_user: Optional[User] = Depends(get_optional_current_user),
+        session_id: Optional[str] = Cookie(None),
+        x_session_id: Optional[str] = Header(None),
+) -> Any:
+    """
+    Create a new cart.
+    
+    Uses the following order of precedence:
+    1. User authentication (if logged in)
+    2. Session ID from X-Session-ID header
+    3. Session ID from cookie
+    """
+    # Determine the session identifier
+    session_identifier = x_session_id or session_id
+    
+    # Create cart based on user or session
+    if current_user:
+        cart = cart_service.get_or_create_cart(db, user_id=current_user.id)
+    elif session_identifier:
+        cart = cart_service.get_or_create_cart(db, session_id=session_identifier)
+    else:
+        # No way to identify the cart
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No user authentication or session identifier provided",
+        )
+    
+    return cart
+
+
 @router.get("", response_model=Cart)
 def read_cart(
         db: Session = Depends(get_db),

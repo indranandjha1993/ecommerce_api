@@ -204,11 +204,13 @@ class CartRepository(BaseRepository[Cart, CartCreate, CartUpdate]):
         """
         Update the last activity timestamp of a cart.
         """
+        from app.utils.datetime_utils import utcnow
+        
         cart = self.get(db, id=cart_id)
         if not cart:
             raise ValueError("Cart not found")
 
-        cart.last_activity = db.func.now()
+        cart.last_activity = utcnow()
         db.add(cart)
         db.commit()
         db.refresh(cart)

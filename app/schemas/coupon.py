@@ -42,16 +42,22 @@ class CouponBase(BaseModel):
         return v.upper()
 
     @field_validator('discount_value')
-    def validate_discount_value(cls, v, values):
+    def validate_discount_value(cls, v, info):
         """Validate discount value based on discount type."""
+        # Check for negative values
+        if v < 0:
+            raise ValueError("Discount value cannot be negative")
+            
+        values = info.data
         if 'discount_type' in values:
             if values['discount_type'] == DiscountType.PERCENTAGE and v > 100:
                 raise ValueError("Percentage discount cannot exceed 100%")
         return v
 
     @field_validator('buy_quantity', 'get_quantity')
-    def validate_buy_x_get_y(cls, v, values):
+    def validate_buy_x_get_y(cls, v, info):
         """Validate buy X get Y quantities."""
+        values = info.data
         if 'discount_type' in values and values['discount_type'] == DiscountType.BUY_X_GET_Y:
             if v is None or v <= 0:
                 raise ValueError("Buy X Get Y quantities must be positive")
@@ -98,8 +104,9 @@ class CouponUpdate(BaseModel):
         return v
 
     @field_validator('discount_value')
-    def validate_discount_value(cls, v, values):
+    def validate_discount_value(cls, v, info):
         """Validate discount value based on discount type."""
+        values = info.data
         if v is not None and 'discount_type' in values and values['discount_type'] is not None:
             if values['discount_type'] == DiscountType.PERCENTAGE and v > 100:
                 raise ValueError("Percentage discount cannot exceed 100%")
