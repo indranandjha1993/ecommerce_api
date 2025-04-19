@@ -81,7 +81,9 @@ def login(
         raise UnauthorizedException(detail="Inactive user")
 
     # Update last login timestamp
-    user.last_login = db.func.now()
+    from sqlalchemy import func
+    from datetime import datetime
+    user.last_login = datetime.utcnow()
     db.add(user)
     db.commit()
 
@@ -113,7 +115,8 @@ def login_email(
         raise UnauthorizedException(detail="Inactive user")
 
     # Update last login timestamp
-    user.last_login = db.func.now()
+    from datetime import datetime
+    user.last_login = datetime.utcnow()
     db.add(user)
     db.commit()
 

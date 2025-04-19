@@ -91,6 +91,7 @@ def superuser_token_headers(client):
     """
     from app.core.security import create_access_token
     from app.db.init_db import create_superuser
+    from app.models.user import User
 
     # Create a superuser in the test database
     superuser_email = "admin@example.com"  # Use a test admin email

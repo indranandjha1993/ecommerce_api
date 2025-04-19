@@ -6,6 +6,7 @@ def configure_relationships():
     from sqlalchemy.orm import relationship
     from app.models.user import User
     from app.models.address import Address
+    from app.models.review import Review
 
     # Remove the relationships defined in the model classes
     # and define them here explicitly
@@ -14,7 +15,7 @@ def configure_relationships():
     User.addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
     User.carts = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
     User.orders = relationship("Order", back_populates="user")
-    User.reviews = relationship("Review", back_populates="user")
+    User.reviews = relationship("Review", foreign_keys="[Review.user_id]", back_populates="user")
 
     # Address relationships
     Address.user = relationship("User", back_populates="addresses")

@@ -36,7 +36,7 @@ class ProductImageInDBBase(ProductImageBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductImage(ProductImageInDBBase):
@@ -70,7 +70,7 @@ class ProductAttributeInDBBase(ProductAttributeBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductAttribute(ProductAttributeInDBBase):
@@ -103,7 +103,7 @@ class ProductAttributeValueInDBBase(ProductAttributeValueBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductAttributeValueWithAttribute(ProductAttributeValueInDBBase):
@@ -136,7 +136,7 @@ class ProductVariantAttributeInDB(ProductVariantAttributeBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductVariantAttribute(BaseModel):
@@ -145,7 +145,7 @@ class ProductVariantAttribute(BaseModel):
     attribute_value: ProductAttributeValue
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductVariantBase(BaseModel):
@@ -180,7 +180,7 @@ class ProductVariantInDBBase(ProductVariantBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductVariant(ProductVariantInDBBase):
@@ -259,7 +259,7 @@ class ProductInDBBase(ProductBase):
     updated_at: datetime.datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductInDB(ProductInDBBase):
@@ -296,13 +296,13 @@ class ProductListItem(BaseModel):
     price: Decimal
     compare_price: Optional[Decimal] = None
     primary_image: Optional[ProductImage] = None
-    is_in_stock: bool = True
+    is_in_stock: Optional[bool] = True  # Make it optional with default True
     average_rating: Optional[float] = None
     category: Optional[Category] = None
     brand: Optional[Brand] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProductList(BaseModel):

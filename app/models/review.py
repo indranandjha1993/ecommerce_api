@@ -59,7 +59,7 @@ class Review(Base):
 
     # Relationships
     product = relationship("Product", back_populates="reviews")
-    user = relationship("User", foreign_keys=[user_id], back_populates="reviews")
+    user = relationship("User", foreign_keys=[user_id])
     order_item = relationship("OrderItem")
     moderator = relationship("User", foreign_keys=[moderated_by])
     replies = relationship("ReviewReply", back_populates="review", cascade="all, delete-orphan")
