@@ -8,7 +8,6 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 
 from app.db.session import Base
 
@@ -33,11 +32,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
-    # Relationships
-    addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
-    carts = relationship("Cart", back_populates="user", cascade="all, delete-orphan")
-    orders = relationship("Order", back_populates="user")
-    reviews = relationship("Review", back_populates="user")
+    # Relationships are set dynamically in the configure_relationships function
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email})>"

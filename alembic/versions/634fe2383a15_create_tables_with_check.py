@@ -1,8 +1,8 @@
-"""Initial migration
+"""create_tables_with_check
 
-Revision ID: 8baf449705e2
+Revision ID: 634fe2383a15
 Revises: 
-Create Date: 2025-04-18 18:24:48.574493
+Create Date: 2025-04-19 08:52:40.719427
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '8baf449705e2'
+revision: str = '634fe2383a15'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -99,7 +99,7 @@ def upgrade() -> None:
     op.create_table('addresses',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
-    sa.Column('address_type', sa.Enum('SHIPPING', 'BILLING', 'BOTH', name='addresstype'), nullable=True),
+    sa.Column('address_type', sa.Enum('SHIPPING', 'BILLING', 'BOTH', name='addresstype', create_type=False), nullable=True),
     sa.Column('is_default', sa.Boolean(), nullable=True),
     sa.Column('first_name', sa.String(length=100), nullable=True),
     sa.Column('last_name', sa.String(length=100), nullable=True),

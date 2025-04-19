@@ -11,7 +11,6 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 
 from app.db.session import Base
 
@@ -49,18 +48,7 @@ class Address(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    user = relationship("User", back_populates="addresses")
-    shipping_orders = relationship(
-        "Order",
-        foreign_keys="[Order.shipping_address_id]",
-        back_populates="shipping_address"
-    )
-    billing_orders = relationship(
-        "Order",
-        foreign_keys="[Order.billing_address_id]",
-        back_populates="billing_address"
-    )
+    # Relationships are set dynamically in the configure_relationships function
 
     def __repr__(self):
         return f"<Address(id={self.id}, user_id={self.user_id}, type={self.address_type})>"
