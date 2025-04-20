@@ -25,17 +25,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for user creation."""
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
     confirm_password: str
 
-    @field_validator('confirm_password')
-    @classmethod
-    def passwords_match(cls, v, info):
-        # In Pydantic V2, access values differently
-        values = info.data
-        if 'password' in values and v != values['password']:
-            raise ValueError('Passwords do not match')
-        return v
+    # Validation is now handled in the API endpoint
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -113,6 +106,12 @@ class TokenPayload(BaseModel):
     """Schema for token payload."""
     sub: str
     exp: int
+
+
+# Refresh token schema
+class RefreshToken(BaseModel):
+    """Schema for refresh token request."""
+    refresh_token: str
 
 
 # User login schema

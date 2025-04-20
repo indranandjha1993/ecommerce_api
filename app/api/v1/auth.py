@@ -27,6 +27,7 @@ from app.schemas.user import (
     PasswordResetRequest,
     PasswordReset,
     EmailVerification,
+    RefreshToken,
 )
 from app.utils.datetime_utils import utcnow
 
@@ -42,6 +43,14 @@ def register(
     """
     Register a new user.
     """
+    # Check if passwords match
+    if user_in.password != user_in.confirm_password:
+        raise BadRequestException(detail="Passwords do not match")
+        
+    # Check if password is strong enough
+    if len(user_in.password) < 8:
+        raise BadRequestException(detail="Password is too weak")
+        
     # Check if user with this email already exists
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
@@ -132,11 +141,11 @@ def login_email(
     }
 
 
-@router.post("/refresh-token", response_model=Token)
+@router.post("/refresh", response_model=Token)
 def refresh_token(
         *,
         db: Session = Depends(get_db),
-        refresh_token: str = Body(...),
+        refresh_data: RefreshToken,
 ) -> Any:
     """
     Refresh access token.
@@ -146,6 +155,8 @@ def refresh_token(
     from app.schemas.user import TokenPayload
 
     try:
+        refresh_token = refresh_data.refresh_token
+        
         payload = jwt.decode(
             refresh_token, settings.SECRET_KEY, algorithms=["HS256"]
         )
