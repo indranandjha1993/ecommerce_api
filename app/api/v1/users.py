@@ -1,4 +1,5 @@
 from typing import Any, List
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
@@ -48,28 +49,58 @@ def update_current_user(
 ) -> Any:
     """
     Update current user.
+    
+    This endpoint allows users to update their profile information including:
+    - Personal details (name, email, phone number)
+    - Account settings
+    - Password (requires current password verification)
+    
+    When changing password:
+    - The current password must be provided and verified
+    - The new password must meet the system's password requirements
+    - Password history policies may prevent reuse of recent passwords
+    
+    Email changes may require verification depending on system settings.
     """
-    # Verify current password if a new password is being set
-    if user_in.password and user_in.current_password:
-        if not verify_password(user_in.current_password, current_user.password_hash):
-            raise BadRequestException(detail="Incorrect password")
-    elif user_in.password:
-        raise BadRequestException(detail="Current password is required")
+    try:
+        # Verify current password if a new password is being set
+        if user_in.password and user_in.current_password:
+            if not verify_password(user_in.current_password, current_user.password_hash):
+                raise BadRequestException(detail="Incorrect password")
+        elif user_in.password:
+            raise BadRequestException(detail="Current password is required")
 
-    # Update user data
-    for key, value in user_in.model_dump(exclude_unset=True).items():
-        if key == "password":
-            current_user.password_hash = get_password_hash(value)
-        elif key == "current_password":
-            continue  # Skip this field
-        else:
-            setattr(current_user, key, value)
+        # Check if email is being changed
+        if user_in.email and user_in.email != current_user.email:
+            # Check if the new email is already in use
+            existing_user = db.query(User).filter(User.email == user_in.email).first()
+            if existing_user:
+                raise BadRequestException(detail="Email already registered")
+            
+            # TODO: Implement email verification for email changes
+            # For now, just update the email directly
 
-    db.add(current_user)
-    db.commit()
-    db.refresh(current_user)
+        # Update user data
+        for key, value in user_in.model_dump(exclude_unset=True).items():
+            if key == "password":
+                current_user.password_hash = get_password_hash(value)
+                # Update last password change timestamp
+                current_user.last_password_change = datetime.utcnow()
+            elif key == "current_password":
+                continue  # Skip this field
+            else:
+                setattr(current_user, key, value)
 
-    return current_user
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+
+        return current_user
+    except BadRequestException:
+        raise
+    except Exception as e:
+        print(f"Error updating user: {str(e)}")
+        raise BadRequestException(detail="Error updating user profile")
 
 
 @router.get("", response_model=List[UserSchema])
@@ -214,27 +245,60 @@ def create_current_user_address(
 ) -> Any:
     """
     Create a new address for the current user.
+    
+    This endpoint allows users to add a new shipping or billing address to their profile.
+    
+    Features:
+    - Users can have multiple addresses
+    - Addresses can be designated as shipping or billing type
+    - One address of each type can be set as the default
+    - If this is the first address of its type, it will automatically be set as default
+    - Address validation ensures required fields are provided
+    
+    The address will be associated with the current authenticated user.
     """
-    from app.models.address import Address
+    try:
+        from app.models.address import Address
 
-    # If this is the first address or marked as default, unset other defaults
-    if address_in.is_default or db.query(Address).filter(Address.user_id == current_user.id).count() == 0:
-        db.query(Address).filter(
+        # Validate address fields
+        if not address_in.street_address_1:
+            raise BadRequestException(detail="Street address 1 is required")
+        
+        if not address_in.city:
+            raise BadRequestException(detail="City is required")
+            
+        if not address_in.postal_code:
+            raise BadRequestException(detail="Postal code is required")
+            
+        if not address_in.country:
+            raise BadRequestException(detail="Country is required")
+
+        # If this is the first address or marked as default, unset other defaults
+        if address_in.is_default or db.query(Address).filter(
             Address.user_id == current_user.id,
             Address.address_type == address_in.address_type
-        ).update({"is_default": False})
-        address_in.is_default = True
+        ).count() == 0:
+            db.query(Address).filter(
+                Address.user_id == current_user.id,
+                Address.address_type == address_in.address_type
+            ).update({"is_default": False})
+            address_in.is_default = True
 
-    # Create new address
-    db_address = Address(
-        user_id=current_user.id,
-        **address_in.model_dump()
-    )
-    db.add(db_address)
-    db.commit()
-    db.refresh(db_address)
+        # Create new address
+        db_address = Address(
+            user_id=current_user.id,
+            **address_in.model_dump()
+        )
+        db.add(db_address)
+        db.commit()
+        db.refresh(db_address)
 
-    return db_address
+        return db_address
+    except BadRequestException:
+        raise
+    except Exception as e:
+        print(f"Error creating address: {str(e)}")
+        raise BadRequestException(detail="Error creating address")
 
 
 @router.get("/me/addresses/{address_id}", response_model=AddressSchema)

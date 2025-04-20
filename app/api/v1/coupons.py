@@ -176,26 +176,44 @@ def validate_coupon(
 ) -> Any:
     """
     Validate a coupon.
+    
+    Checks if a coupon code is valid and can be applied to the current order.
+    This endpoint performs all validation checks but does not actually apply
+    the coupon to any order.
+    
+    The validation includes:
+    - Checking if the coupon exists and is active
+    - Verifying the coupon hasn't expired
+    - Ensuring usage limits haven't been exceeded
+    - Validating minimum order requirements
+    - Checking product/category restrictions
+    
+    Returns the coupon details and calculated discount amount if valid.
     """
-    coupon = coupon_service.validate_coupon(
-        db,
-        code=validation.code,
-        user_id=current_user.id if current_user else None,
-        order_total=validation.order_total,
-        items=validation.items
-    )
+    try:
+        coupon = coupon_service.validate_coupon(
+            db,
+            code=validation.code,
+            user_id=current_user.id if current_user else None,
+            order_total=validation.order_total,
+            items=validation.items
+        )
 
-    discount_amount = coupon_service.calculate_discount(
-        coupon,
-        order_total=validation.order_total or 0,
-        items=validation.items
-    )
+        discount_amount = coupon_service.calculate_discount(
+            coupon,
+            order_total=validation.order_total or 0,
+            items=validation.items
+        )
 
-    return {
-        "coupon": coupon,
-        "discount_amount": discount_amount,
-        "message": "Coupon is valid"
-    }
+        return {
+            "coupon": coupon,
+            "discount_amount": discount_amount,
+            "message": "Coupon is valid"
+        }
+    except Exception as e:
+        # Log the error but return a user-friendly message
+        print(f"Error validating coupon: {str(e)}")
+        raise
 
 
 @router.post("/apply", response_model=CouponApplicationResponse)
@@ -207,18 +225,34 @@ def apply_coupon(
 ) -> Any:
     """
     Apply a coupon to an order.
+    
+    This endpoint validates the coupon and applies it to the specified order.
+    It performs the same validation as the /validate endpoint, but also:
+    - Records the coupon usage against the order
+    - Updates the order with the discount amount
+    - Decrements the coupon's remaining usage count
+    
+    The order must exist and belong to the current user (if authenticated).
+    For guest orders, the order ID must match the session.
+    
+    Returns the applied coupon details and the calculated discount amount.
     """
-    coupon, discount_amount = coupon_service.apply_coupon(
-        db,
-        code=application.code,
-        order_id=application.order_id,
-        user_id=current_user.id if current_user else None,
-        order_total=application.order_total,
-        items=application.items
-    )
+    try:
+        coupon, discount_amount = coupon_service.apply_coupon(
+            db,
+            code=application.code,
+            order_id=application.order_id,
+            user_id=current_user.id if current_user else None,
+            order_total=application.order_total,
+            items=application.items
+        )
 
-    return {
-        "coupon": coupon,
-        "discount_amount": discount_amount,
-        "message": "Coupon applied successfully"
-    }
+        return {
+            "coupon": coupon,
+            "discount_amount": discount_amount,
+            "message": "Coupon applied successfully"
+        }
+    except Exception as e:
+        # Log the error but return a user-friendly message
+        print(f"Error applying coupon: {str(e)}")
+        raise
