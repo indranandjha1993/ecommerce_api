@@ -4,8 +4,8 @@ def test_create_user(client):
     """
     user_data = {
         "email": "test-create@example.com",
-        "password": "password123",
-        "confirm_password": "password123",
+        "password": "Password123",  # Updated to meet complexity requirements
+        "confirm_password": "Password123",  # Updated to match
         "first_name": "Test",
         "last_name": "User"
     }
@@ -27,8 +27,8 @@ def test_login_user(client, db):
     # First create a user
     user_data = {
         "email": "test-login@example.com",
-        "password": "password123",
-        "confirm_password": "password123",
+        "password": "Password123",  # Updated to meet complexity requirements
+        "confirm_password": "Password123",  # Updated to match
         "first_name": "Login",
         "last_name": "Test"
     }

@@ -397,7 +397,7 @@ def test_search_products(client, db):
     db.add(product3)
     db.commit()
     
-    # Test searching by name
+    # Test searching by name using the dedicated search endpoint
     response = client.get("/api/v1/products/search?q=smartphone")
     assert response.status_code == 200
     data = response.json()
@@ -407,7 +407,7 @@ def test_search_products(client, db):
     assert "Tablet 123" in product_names  # Should match description
     assert "Laptop ABC" not in product_names
     
-    # Test searching by description
+    # Test searching by description using the dedicated search endpoint
     response = client.get("/api/v1/products/search?q=powerful")
     assert response.status_code == 200
     data = response.json()
@@ -416,6 +416,17 @@ def test_search_products(client, db):
     assert "Laptop ABC" in product_names
     assert "Smartphone XYZ" not in product_names
     assert "Tablet 123" not in product_names
+    
+    # Test searching using the main products endpoint with query parameter
+    response = client.get("/api/v1/products?query=smartphone")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)  # This endpoint returns a paginated response
+    assert "items" in data
+    product_names = [p["name"] for p in data["items"]]
+    assert "Smartphone XYZ" in product_names
+    assert "Tablet 123" in product_names  # Should match description
+    assert "Laptop ABC" not in product_names
 
 
 def test_update_product(client, superuser_token_headers, db):
