@@ -178,6 +178,20 @@ def read_product_by_slug(
     return product_service.get_by_slug(db, slug=slug)
 
 
+@router.get("/products/search", response_model=List[Product])
+def search_products(
+        *,
+        db: Session = Depends(get_db),
+        q: str = Query(..., description="Search query"),
+        limit: int = Query(10, description="Number of products to return"),
+) -> Any:
+    """
+    Search for products by name or description.
+    """
+    products = product_service.search_by_text(db, query=q, limit=limit)
+    return products
+
+
 @router.get("/{product_id}/related", response_model=List[ProductListItem])
 def read_related_products(
         *,

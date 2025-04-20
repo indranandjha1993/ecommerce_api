@@ -227,6 +227,38 @@ class ProductService:
 
         return image
 
+    def search_by_text(
+            self, db: Session, *, query: str, limit: int = 10
+    ) -> List[Product]:
+        """
+        Search for products by name or description.
+        """
+        from sqlalchemy import or_
+        from sqlalchemy.orm import joinedload
+        
+        search_term = f"%{query}%"
+        products = (
+            db.query(Product)
+            .filter(
+                or_(
+                    Product.name.ilike(search_term),
+                    Product.description.ilike(search_term)
+                ),
+                Product.is_active == True
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.brand),
+                joinedload(Product.images),
+                joinedload(Product.inventory),
+                joinedload(Product.reviews),
+            )
+            .limit(limit)
+            .all()
+        )
+        
+        return products
+
     def get_related_products(
             self, db: Session, *, product_id: uuid.UUID, limit: int = 5
     ) -> List[Product]:
