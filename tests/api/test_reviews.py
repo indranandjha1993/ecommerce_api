@@ -137,6 +137,15 @@ def test_create_review_nonexistent_product(client, normal_user_token_headers):
     )
     assert response.status_code == 404
     assert "Product not found" in response.json()["detail"]
+    
+    # Also test with an invalid UUID format
+    review_data["product_id"] = "invalid-uuid"
+    response = client.post(
+        "/api/v1/reviews",
+        json=review_data,
+        headers=normal_user_token_headers
+    )
+    assert response.status_code == 422  # Validation error
 
 
 def test_get_product_reviews(client, normal_user_token_headers, db):
@@ -440,3 +449,59 @@ def test_delete_review(client, normal_user_token_headers, db):
         reviews = reviews_data
     review_ids = [review["id"] for review in reviews]
     assert review_id not in review_ids
+
+
+def test_review_cache_headers(client, db):
+    """Test that review endpoints return appropriate cache headers."""
+    # First create a product for testing
+    from app.models.product import Product
+    from app.models.category import Category
+    from app.models.brand import Brand
+    import uuid
+    
+    # Create test category
+    category = Category(
+        id=uuid.uuid4(),
+        name="Cache Test Category",
+        slug="cache-test-category",
+        description="Test category for cache headers",
+        is_active=True
+    )
+    db.add(category)
+    
+    # Create test brand
+    brand = Brand(
+        id=uuid.uuid4(),
+        name="Cache Test Brand",
+        slug="cache-test-brand",
+        description="Test brand for cache headers",
+        is_active=True
+    )
+    db.add(brand)
+    
+    # Create test product
+    product = Product(
+        id=uuid.uuid4(),
+        name="Cache Test Product",
+        slug="cache-test-product",
+        description="Test product for cache headers",
+        price=24.99,
+        category_id=category.id,
+        brand_id=brand.id,
+        is_active=True
+    )
+    db.add(product)
+    db.commit()
+    
+    # Test product reviews endpoint
+    response = client.get(f"/api/v1/reviews/product/{product.id}")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test review by ID endpoint (using a UUID that likely doesn't exist)
+    # Even though it returns 404, it should still have cache headers
+    response = client.get("/api/v1/reviews/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]

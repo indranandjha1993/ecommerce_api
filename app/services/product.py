@@ -68,25 +68,63 @@ class ProductService:
         )
 
     def get_by_category(
-            self, db: Session, *, category_id: uuid.UUID, page: int = 1, size: int = 20
+            self, db: Session, *, category_id: uuid.UUID, page: int = 1, size: int = 20,
+            include_subcategories: bool = True, sort_by: str = "created_at", sort_order: str = "desc"
     ) -> Tuple[List[Product], int]:
         """
         Get products by category with pagination.
+        
+        Args:
+            db: Database session
+            category_id: Category ID to filter by
+            page: Page number for pagination
+            size: Number of items per page
+            include_subcategories: Whether to include products from subcategories
+            sort_by: Field to sort by
+            sort_order: Sort direction ("asc" or "desc")
+            
+        Returns:
+            Tuple of (products list, total count)
         """
         skip = (page - 1) * size
         return product_repository.get_products_by_category(
-            db, category_id=category_id, skip=skip, limit=size
+            db, 
+            category_id=category_id, 
+            skip=skip, 
+            limit=size,
+            include_subcategories=include_subcategories,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
 
     def get_by_brand(
-            self, db: Session, *, brand_id: uuid.UUID, page: int = 1, size: int = 20
+            self, db: Session, *, brand_id: uuid.UUID, page: int = 1, size: int = 20,
+            category_id: Optional[uuid.UUID] = None, sort_by: str = "created_at", sort_order: str = "desc"
     ) -> Tuple[List[Product], int]:
         """
         Get products by brand with pagination.
+        
+        Args:
+            db: Database session
+            brand_id: Brand ID to filter by
+            page: Page number for pagination
+            size: Number of items per page
+            category_id: Optional category ID to further filter results
+            sort_by: Field to sort by
+            sort_order: Sort direction ("asc" or "desc")
+            
+        Returns:
+            Tuple of (products list, total count)
         """
         skip = (page - 1) * size
         return product_repository.get_products_by_brand(
-            db, brand_id=brand_id, skip=skip, limit=size
+            db, 
+            brand_id=brand_id, 
+            skip=skip, 
+            limit=size,
+            category_id=category_id,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
 
     def get_featured_products(self, db: Session, *, limit: int = 10) -> List[Product]:
@@ -95,17 +133,33 @@ class ProductService:
         """
         return product_repository.get_featured_products(db, limit=limit)
 
-    def get_new_arrivals(self, db: Session, *, limit: int = 10) -> List[Product]:
+    def get_new_arrivals(self, db: Session, *, limit: int = 10, days: int = 30) -> List[Product]:
         """
         Get new arrivals (recently added products).
+        
+        Args:
+            db: Database session
+            limit: Maximum number of products to return
+            days: Consider products added within this many days
+            
+        Returns:
+            List of recently added products
         """
-        return product_repository.get_new_arrivals(db, limit=limit)
+        return product_repository.get_new_arrivals(db, limit=limit, days=days)
 
-    def get_bestsellers(self, db: Session, *, limit: int = 10) -> List[Product]:
+    def get_bestsellers(self, db: Session, *, limit: int = 10, period: str = "month") -> List[Product]:
         """
         Get bestsellers based on order items.
+        
+        Args:
+            db: Database session
+            limit: Maximum number of products to return
+            period: Time period for bestsellers calculation ("week", "month", "year", "all")
+            
+        Returns:
+            List of bestselling products
         """
-        return product_repository.get_bestsellers(db, limit=limit)
+        return product_repository.get_bestsellers(db, limit=limit, period=period)
 
     def create(self, db: Session, *, product_in: ProductCreate) -> Product:
         """
@@ -136,22 +190,54 @@ class ProductService:
         # Update the product
         return product_repository.update_product_with_relations(db, db_obj=product, obj_in=product_in)
 
-    def delete(self, db: Session, *, product_id: uuid.UUID) -> None:
+    def delete(self, db: Session, *, product_id: uuid.UUID, force: bool = False) -> None:
         """
         Delete a product.
+        
+        Args:
+            db: Database session
+            product_id: ID of the product to delete
+            force: If True, delete even if product has dependencies
+            
+        Raises:
+            NotFoundException: If product not found
+            ValueError: If product has dependencies and force is False
         """
         product = product_repository.get(db, id=product_id)
         if not product:
             raise NotFoundException(detail="Product not found")
+            
+        # Check for dependencies if not forcing deletion
+        if not force:
+            # Check if product has order items
+            from app.models.order import OrderItem
+            order_items = db.query(OrderItem).filter(OrderItem.product_id == product_id).count()
+            if order_items > 0:
+                raise ValueError(f"Cannot delete product with {order_items} order items. Use force=True to override.")
 
         # Delete the product (cascades to related entities)
         product_repository.remove(db, id=product_id)
 
     def update_inventory(
-            self, db: Session, *, product_id: uuid.UUID, variant_id: Optional[uuid.UUID], quantity: int
-    ) -> None:
+            self, db: Session, *, product_id: uuid.UUID, variant_id: Optional[uuid.UUID], 
+            quantity: int, adjustment_type: str = "set"
+    ) -> int:
         """
         Update product inventory.
+        
+        Args:
+            db: Database session
+            product_id: ID of the product to update
+            variant_id: Optional variant ID if updating a specific variant
+            quantity: Quantity value for the update
+            adjustment_type: Type of adjustment ("set", "add", "subtract")
+            
+        Returns:
+            The updated inventory quantity
+            
+        Raises:
+            NotFoundException: If product or variant not found
+            ValueError: If invalid adjustment type or negative quantity would result
         """
         from app.models.inventory import Inventory
 
@@ -159,6 +245,10 @@ class ProductService:
         product = product_repository.get(db, id=product_id)
         if not product:
             raise NotFoundException(detail="Product not found")
+
+        # Validate adjustment type
+        if adjustment_type not in ["set", "add", "subtract"]:
+            raise ValueError("Invalid adjustment type. Must be 'set', 'add', or 'subtract'")
 
         # Update inventory
         if variant_id:
@@ -182,6 +272,10 @@ class ProductService:
 
         if not inventory:
             # Create inventory record if it doesn't exist
+            if adjustment_type != "set":
+                # Can't add or subtract from non-existent inventory
+                raise ValueError(f"Cannot {adjustment_type} inventory that doesn't exist. Use 'set' instead.")
+                
             inventory = Inventory(
                 product_id=product_id,
                 variant_id=variant_id,
@@ -189,11 +283,22 @@ class ProductService:
             )
             db.add(inventory)
         else:
-            # Update existing inventory
-            inventory.quantity = quantity
+            # Update existing inventory based on adjustment type
+            if adjustment_type == "set":
+                inventory.quantity = quantity
+            elif adjustment_type == "add":
+                inventory.quantity += quantity
+            elif adjustment_type == "subtract":
+                if inventory.quantity < quantity:
+                    raise ValueError(f"Cannot subtract {quantity} from inventory with only {inventory.quantity} items")
+                inventory.quantity -= quantity
+                
             db.add(inventory)
 
         db.commit()
+        db.refresh(inventory)
+        
+        return inventory.quantity
 
     def add_product_image(
             self, db: Session, *, product_id: uuid.UUID, image_url: str, alt_text: Optional[str] = None,
@@ -229,23 +334,42 @@ class ProductService:
 
     def search_by_text(
             self, db: Session, *, query: str, limit: int = 10
-    ) -> List[Product]:
+    ) -> Tuple[List[Product], int]:
         """
         Search for products by name or description.
+        
+        Args:
+            db: Database session
+            query: Search query string
+            limit: Maximum number of products to return
+            
+        Returns:
+            Tuple of (products list, total count)
         """
         from sqlalchemy import or_
         from sqlalchemy.orm import joinedload
         
         search_term = f"%{query}%"
-        products = (
+        
+        # Build the query
+        product_query = (
             db.query(Product)
             .filter(
                 or_(
                     Product.name.ilike(search_term),
-                    Product.description.ilike(search_term)
+                    Product.description.ilike(search_term),
+                    Product.sku.ilike(search_term)
                 ),
                 Product.is_active == True
             )
+        )
+        
+        # Get total count
+        total = product_query.count()
+        
+        # Get products with relations
+        products = (
+            product_query
             .options(
                 joinedload(Product.category),
                 joinedload(Product.brand),
@@ -257,46 +381,35 @@ class ProductService:
             .all()
         )
         
-        return products
+        return products, total
 
     def get_related_products(
-            self, db: Session, *, product_id: uuid.UUID, limit: int = 5
+            self, db: Session, *, product_id: uuid.UUID, limit: int = 5, relation_type: str = "all"
     ) -> List[Product]:
         """
-        Get related products based on category.
+        Get related products based on specified relation type.
+        
+        Args:
+            db: Database session
+            product_id: ID of the product to find related items for
+            limit: Maximum number of products to return
+            relation_type: Type of relation to consider ("category", "brand", "tags", "purchased_together", "all")
+            
+        Returns:
+            List of related products
         """
+        # Check if product exists
         product = product_repository.get(db, id=product_id)
         if not product:
             raise NotFoundException(detail="Product not found")
-
-        # Get products in the same category
-        related_products = (
-            db.query(Product)
-            .filter(
-                Product.category_id == product.category_id,
-                Product.id != product_id,
-                Product.is_active == True
-            )
-            .limit(limit)
-            .all()
+            
+        # Use the repository method to get related products
+        return product_repository.get_related_products(
+            db, 
+            product_id=product_id, 
+            limit=limit,
+            relation_type=relation_type
         )
-
-        # If not enough products in the same category, add products from the same brand
-        if len(related_products) < limit and product.brand_id:
-            brand_products = (
-                db.query(Product)
-                .filter(
-                    Product.brand_id == product.brand_id,
-                    Product.id != product_id,
-                    Product.id.notin_([p.id for p in related_products]),
-                    Product.is_active == True
-                )
-                .limit(limit - len(related_products))
-                .all()
-            )
-            related_products.extend(brand_products)
-
-        return related_products
 
 
 product_service = ProductService()

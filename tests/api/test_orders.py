@@ -263,6 +263,10 @@ def test_get_user_orders(client, db, normal_user_token_headers):
     assert data["items"][0]["order_number"] == "TEST-123"
     # We created one order item with quantity 2
     assert data["items"][0]["item_count"] == 1
+    
+    # Check cache headers
+    assert "Cache-Control" in response.headers
+    assert "private" in response.headers["Cache-Control"]
 
 
 def test_get_order_by_id(client, db, normal_user_token_headers):
@@ -673,7 +677,131 @@ def test_order_by_number(client, db, normal_user_token_headers):
         f"/api/v1/orders/number/{order_number}",
         headers=normal_user_token_headers
     )
+    
+    # Check cache headers
+    assert "Cache-Control" in response.headers
+    assert "private" in response.headers["Cache-Control"]
 
     assert response.status_code == 200
     data = response.json()
     assert data["order_number"] == order_number
+    
+def test_admin_orders_with_payment_status(client, db, superuser_token_headers):
+    """
+    Test admin endpoint to get orders filtered by payment status.
+    """
+    # Create test orders with different payment statuses
+    from app.models.order import Order, OrderStatus, PaymentStatus
+    from app.models.user import User
+    from app.models.address import Address
+
+    # Get or create a user
+    user = db.query(User).filter(User.email == "test@example.com").first()
+    if not user:
+        user = User(
+            email="test@example.com",
+            password_hash="hashed_password",
+            first_name="Test",
+            last_name="User",
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Create address for the orders
+    shipping_address = Address(
+        user_id=user.id,
+        first_name="Payment Test",
+        last_name="User",
+        street_address_1="123 Payment St",
+        city="Payment City",
+        postal_code="12345",
+        country="Payment Country",
+        address_type="shipping"
+    )
+    db.add(shipping_address)
+    db.commit()
+    db.refresh(shipping_address)
+
+    # Create billing address
+    billing_address = Address(
+        user_id=user.id,
+        first_name="Payment Test",
+        last_name="User",
+        street_address_1="123 Payment St",
+        city="Payment City",
+        postal_code="12345",
+        country="Payment Country",
+        address_type="billing"
+    )
+    db.add(billing_address)
+    db.commit()
+    db.refresh(billing_address)
+    
+    # Create order with PENDING payment status
+    order1 = Order(
+        order_number="PAYMENT-PENDING",
+        user_id=user.id,
+        status=OrderStatus.PENDING,
+        payment_status=PaymentStatus.PENDING,
+        subtotal=Decimal("100.00"),
+        shipping_amount=Decimal("10.00"),
+        tax_amount=Decimal("10.00"),
+        discount_amount=Decimal("0.00"),
+        total_amount=Decimal("120.00"),
+        currency="USD",
+        customer_email="test@example.com",
+        customer_name="Payment Test User",
+        shipping_address_id=shipping_address.id,
+        billing_address_id=billing_address.id
+    )
+    db.add(order1)
+    
+    # Create order with PAID payment status
+    order2 = Order(
+        order_number="PAYMENT-PAID",
+        user_id=user.id,
+        status=OrderStatus.PROCESSING,
+        payment_status=PaymentStatus.PAID,
+        subtotal=Decimal("200.00"),
+        shipping_amount=Decimal("15.00"),
+        tax_amount=Decimal("20.00"),
+        discount_amount=Decimal("0.00"),
+        total_amount=Decimal("235.00"),
+        currency="USD",
+        customer_email="test@example.com",
+        customer_name="Payment Test User",
+        shipping_address_id=shipping_address.id,
+        billing_address_id=billing_address.id
+    )
+    db.add(order2)
+    db.commit()
+    db.refresh(order1)
+    db.refresh(order2)
+
+    # Test filtering by payment status - PENDING
+    response = client.get(
+        f"/api/v1/orders?payment_status=pending",
+        headers=superuser_token_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) >= 1
+    assert all(item["payment_status"] == "pending" for item in data["items"])
+    
+    # Test filtering by payment status - PAID
+    response = client.get(
+        f"/api/v1/orders?payment_status=paid",
+        headers=superuser_token_headers
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) >= 1
+    assert all(item["payment_status"] == "paid" for item in data["items"])
+    
+    # Check cache headers
+    assert "Cache-Control" in response.headers
+    assert "private" in response.headers["Cache-Control"]

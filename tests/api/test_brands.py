@@ -91,6 +91,10 @@ def test_get_brand_not_found(client):
     response = client.get("/api/v1/brands/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
     assert "Brand not found" in response.json()["detail"]
+    
+    # Also test with an invalid UUID format
+    response = client.get("/api/v1/brands/invalid-uuid")
+    assert response.status_code == 422  # Validation error
 
 
 def test_update_brand(client, superuser_token_headers):
@@ -202,3 +206,31 @@ def test_normal_user_cannot_create_brand(client, normal_user_token_headers):
     )
     assert response.status_code == 403
     assert "The user doesn't have enough privileges" in response.json()["detail"]
+
+
+def test_brand_cache_headers(client):
+    """Test that brand endpoints return appropriate cache headers."""
+    # Test main brands endpoint
+    response = client.get("/api/v1/brands")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test featured brands endpoint
+    response = client.get("/api/v1/brands/featured")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test brand by ID endpoint (using a UUID that likely doesn't exist)
+    # Even though it returns 404, it should still have cache headers
+    response = client.get("/api/v1/brands/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test brand by slug endpoint (using a slug that likely doesn't exist)
+    response = client.get("/api/v1/brands/slug/nonexistent-brand")
+    assert response.status_code == 404
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]

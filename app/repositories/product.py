@@ -178,23 +178,56 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         return products, total
 
     def get_products_by_category(
-            self, db: Session, *, category_id: uuid.UUID, skip: int = 0, limit: int = 100
+            self, db: Session, *, category_id: uuid.UUID, skip: int = 0, limit: int = 100,
+            include_subcategories: bool = True, sort_by: str = "created_at", sort_order: str = "desc"
     ) -> Tuple[List[Product], int]:
         """
         Get products by category with pagination.
+        
+        Args:
+            db: Database session
+            category_id: Category ID to filter by
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            include_subcategories: Whether to include products from subcategories
+            sort_by: Field to sort by
+            sort_order: Sort direction ("asc" or "desc")
+            
+        Returns:
+            Tuple of (products list, total count)
         """
-        # Include subcategories
-        category_ids = [category_id]
-        categories = db.query(Category).filter(Category.parent_id == category_id).all()
-        category_ids.extend([cat.id for cat in categories])
+        # Start with base query
+        query = db.query(Product).filter(Product.is_active == True)
+        
+        if include_subcategories:
+            # Include subcategories
+            category_ids = [category_id]
+            categories = db.query(Category).filter(Category.parent_id == category_id).all()
+            category_ids.extend([cat.id for cat in categories])
+            query = query.filter(Product.category_id.in_(category_ids))
+        else:
+            # Only the specified category
+            query = query.filter(Product.category_id == category_id)
 
-        query = db.query(Product).filter(
-            Product.category_id.in_(category_ids),
-            Product.is_active == True
-        )
-
+        # Get total count
         total = query.count()
 
+        # Apply sorting
+        if sort_by == "name":
+            sort_field = Product.name
+        elif sort_by == "price":
+            sort_field = Product.price
+        elif sort_by == "updated_at":
+            sort_field = Product.updated_at
+        else:  # default to created_at
+            sort_field = Product.created_at
+            
+        if sort_order == "asc":
+            query = query.order_by(sort_field.asc())
+        else:
+            query = query.order_by(sort_field.desc())
+
+        # Get products with relations
         products = query.options(
             joinedload(Product.category),
             joinedload(Product.brand),
@@ -206,18 +239,53 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         return products, total
 
     def get_products_by_brand(
-            self, db: Session, *, brand_id: uuid.UUID, skip: int = 0, limit: int = 100
+            self, db: Session, *, brand_id: uuid.UUID, skip: int = 0, limit: int = 100,
+            category_id: Optional[uuid.UUID] = None, sort_by: str = "created_at", sort_order: str = "desc"
     ) -> Tuple[List[Product], int]:
         """
         Get products by brand with pagination.
+        
+        Args:
+            db: Database session
+            brand_id: Brand ID to filter by
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            category_id: Optional category ID to further filter results
+            sort_by: Field to sort by
+            sort_order: Sort direction ("asc" or "desc")
+            
+        Returns:
+            Tuple of (products list, total count)
         """
+        # Start with base query
         query = db.query(Product).filter(
             Product.brand_id == brand_id,
             Product.is_active == True
         )
+        
+        # Apply category filter if provided
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
 
+        # Get total count
         total = query.count()
+        
+        # Apply sorting
+        if sort_by == "name":
+            sort_field = Product.name
+        elif sort_by == "price":
+            sort_field = Product.price
+        elif sort_by == "updated_at":
+            sort_field = Product.updated_at
+        else:  # default to created_at
+            sort_field = Product.created_at
+            
+        if sort_order == "asc":
+            query = query.order_by(sort_field.asc())
+        else:
+            query = query.order_by(sort_field.desc())
 
+        # Get products with relations
         products = query.options(
             joinedload(Product.category),
             joinedload(Product.brand),
@@ -249,14 +317,30 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         )
 
     def get_new_arrivals(
-            self, db: Session, *, limit: int = 10
+            self, db: Session, *, limit: int = 10, days: int = 30
     ) -> List[Product]:
         """
         Get new arrivals (recently added products).
+        
+        Args:
+            db: Database session
+            limit: Maximum number of products to return
+            days: Consider products added within this many days
+            
+        Returns:
+            List of recently added products
         """
+        import datetime
+        
+        # Calculate the date threshold
+        date_threshold = datetime.datetime.now() - datetime.timedelta(days=days)
+        
         return (
             db.query(Product)
-            .filter(Product.is_active == True)
+            .filter(
+                Product.is_active == True,
+                Product.created_at >= date_threshold
+            )
             .options(
                 joinedload(Product.category),
                 joinedload(Product.brand),
@@ -270,22 +354,47 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         )
 
     def get_bestsellers(
-            self, db: Session, *, limit: int = 10
+            self, db: Session, *, limit: int = 10, period: str = "month"
     ) -> List[Product]:
         """
         Get bestsellers based on order items.
+        
+        Args:
+            db: Database session
+            limit: Maximum number of products to return
+            period: Time period for bestsellers calculation ("week", "month", "year", "all")
+            
+        Returns:
+            List of bestselling products
         """
         from app.models.order import OrderItem, Order
         from app.models.order import OrderStatus
+        import datetime
 
-        # Subquery to count completed orders for each product
+        # Base query
+        query = db.query(
+            OrderItem.product_id,
+            func.sum(OrderItem.quantity).label("total_sold")
+        ).join(Order).filter(Order.status == OrderStatus.COMPLETED)
+        
+        # Apply time period filter
+        if period != "all":
+            now = datetime.datetime.now()
+            if period == "week":
+                date_threshold = now - datetime.timedelta(days=7)
+            elif period == "month":
+                date_threshold = now - datetime.timedelta(days=30)
+            elif period == "year":
+                date_threshold = now - datetime.timedelta(days=365)
+            else:
+                # Default to month if invalid period
+                date_threshold = now - datetime.timedelta(days=30)
+                
+            query = query.filter(Order.created_at >= date_threshold)
+
+        # Complete the query
         bestsellers = (
-            db.query(
-                OrderItem.product_id,
-                func.sum(OrderItem.quantity).label("total_sold")
-            )
-            .join(Order)
-            .filter(Order.status == OrderStatus.COMPLETED)
+            query
             .group_by(OrderItem.product_id)
             .order_by(func.sum(OrderItem.quantity).desc())
             .limit(limit)
@@ -293,7 +402,7 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         )
 
         # Query products in bestseller order
-        return (
+        products = (
             db.query(Product)
             .join(bestsellers, Product.id == bestsellers.c.product_id)
             .filter(Product.is_active == True)
@@ -306,6 +415,33 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
             )
             .all()
         )
+        
+        # If we don't have enough bestsellers, supplement with featured products
+        if len(products) < limit:
+            featured_count = limit - len(products)
+            existing_ids = [p.id for p in products]
+            
+            featured_products = (
+                db.query(Product)
+                .filter(
+                    Product.is_active == True,
+                    Product.is_featured == True,
+                    ~Product.id.in_(existing_ids)
+                )
+                .options(
+                    joinedload(Product.category),
+                    joinedload(Product.brand),
+                    joinedload(Product.images),
+                    joinedload(Product.inventory),
+                    joinedload(Product.reviews),
+                )
+                .limit(featured_count)
+                .all()
+            )
+            
+            products.extend(featured_products)
+            
+        return products
 
     def create_product_with_relations(
             self, db: Session, *, obj_in: ProductCreate
@@ -398,6 +534,134 @@ class ProductRepository(BaseRepository[Product, ProductCreate, ProductUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+        
+    def get_related_products(
+            self, db: Session, *, product_id: uuid.UUID, limit: int = 5, relation_type: str = "all"
+    ) -> List[Product]:
+        """
+        Get related products based on specified relation type.
+        
+        Args:
+            db: Database session
+            product_id: ID of the product to find related items for
+            limit: Maximum number of products to return
+            relation_type: Type of relation to consider ("category", "brand", "tags", "purchased_together", "all")
+            
+        Returns:
+            List of related products
+        """
+        from app.models.order import OrderItem, Order
+        
+        product = self.get(db, id=product_id)
+        if not product:
+            return []
+            
+        related_products = []
+        
+        # Get products based on relation type
+        if relation_type in ["category", "all"]:
+            # Get products in the same category
+            category_products = (
+                db.query(Product)
+                .filter(
+                    Product.category_id == product.category_id,
+                    Product.id != product_id,
+                    Product.is_active == True
+                )
+                .options(
+                    joinedload(Product.category),
+                    joinedload(Product.brand),
+                    joinedload(Product.images),
+                    joinedload(Product.inventory),
+                    joinedload(Product.reviews),
+                )
+                .limit(limit)
+                .all()
+            )
+            related_products.extend(category_products)
+            
+        if relation_type in ["brand", "all"] and product.brand_id and len(related_products) < limit:
+            # Get products from the same brand
+            remaining = limit - len(related_products)
+            existing_ids = [p.id for p in related_products] + [product_id]
+            
+            brand_products = (
+                db.query(Product)
+                .filter(
+                    Product.brand_id == product.brand_id,
+                    ~Product.id.in_(existing_ids),
+                    Product.is_active == True
+                )
+                .options(
+                    joinedload(Product.category),
+                    joinedload(Product.brand),
+                    joinedload(Product.images),
+                    joinedload(Product.inventory),
+                    joinedload(Product.reviews),
+                )
+                .limit(remaining)
+                .all()
+            )
+            related_products.extend(brand_products)
+            
+        if relation_type in ["purchased_together", "all"] and len(related_products) < limit:
+            # Get products frequently purchased together
+            remaining = limit - len(related_products)
+            existing_ids = [p.id for p in related_products] + [product_id]
+            
+            # Find orders containing this product
+            orders_with_product = (
+                db.query(OrderItem.order_id)
+                .filter(OrderItem.product_id == product_id)
+                .subquery()
+            )
+            
+            # Find other products in those orders
+            purchased_together = (
+                db.query(Product)
+                .join(OrderItem, OrderItem.product_id == Product.id)
+                .filter(
+                    OrderItem.order_id.in_(db.query(orders_with_product.c.order_id)),
+                    ~Product.id.in_(existing_ids),
+                    Product.is_active == True
+                )
+                .options(
+                    joinedload(Product.category),
+                    joinedload(Product.brand),
+                    joinedload(Product.images),
+                    joinedload(Product.inventory),
+                    joinedload(Product.reviews),
+                )
+                .limit(remaining)
+                .all()
+            )
+            related_products.extend(purchased_together)
+            
+        # If we still don't have enough products, add some featured products
+        if len(related_products) < limit:
+            remaining = limit - len(related_products)
+            existing_ids = [p.id for p in related_products] + [product_id]
+            
+            featured_products = (
+                db.query(Product)
+                .filter(
+                    Product.is_featured == True,
+                    ~Product.id.in_(existing_ids),
+                    Product.is_active == True
+                )
+                .options(
+                    joinedload(Product.category),
+                    joinedload(Product.brand),
+                    joinedload(Product.images),
+                    joinedload(Product.inventory),
+                    joinedload(Product.reviews),
+                )
+                .limit(remaining)
+                .all()
+            )
+            related_products.extend(featured_products)
+            
+        return related_products[:limit]
 
 
 product_repository = ProductRepository(Product)

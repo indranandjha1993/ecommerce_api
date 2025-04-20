@@ -67,6 +67,15 @@ class OrderService:
         """
         skip = (page - 1) * size
         return order_repository.get_orders_by_status(db, status=status, skip=skip, limit=size)
+        
+    def get_orders_by_payment_status(
+            self, db: Session, payment_status: PaymentStatus, page: int = 1, size: int = 20
+    ) -> Tuple[List[Order], int]:
+        """
+        Get orders by payment status with pagination.
+        """
+        skip = (page - 1) * size
+        return order_repository.get_orders_by_payment_status(db, payment_status=payment_status, skip=skip, limit=size)
 
     def get_all(self, db: Session, page: int = 1, size: int = 20) -> Tuple[List[Order], int]:
         """

@@ -28,12 +28,26 @@ def test_get_active_cart(client, normal_user_token_headers):
     assert data["is_active"] is True
 
 
-def test_get_active_cart_not_found(client):
-    """Test getting an active cart when no user is authenticated and no session ID is provided."""
-    # Try to get a cart without authentication or session ID
+def test_cart_authentication_and_validation(client, normal_user_token_headers):
+    """Test cart authentication and validation scenarios."""
+    # Scenario 1: Try to get a cart without authentication or session ID
     response = client.get("/api/v1/carts")
     assert response.status_code == 401
     assert "Not authenticated" in response.json()["detail"]
+    
+    # Scenario 2: Create a cart with authentication
+    response = client.get("/api/v1/carts", headers=normal_user_token_headers)
+    assert response.status_code == 200
+    cart_data = response.json()
+    assert "id" in cart_data
+    
+    # Scenario 3: Test validation error with invalid UUID format
+    response = client.put(
+        "/api/v1/carts/items/invalid-uuid", 
+        json={"quantity": 1},
+        headers=normal_user_token_headers
+    )
+    assert response.status_code == 422  # Validation error for UUID format
 
 
 def test_add_item_to_cart(client, normal_user_token_headers, db):
@@ -349,3 +363,84 @@ def test_clear_cart(client, normal_user_token_headers, db):
     )
     cart_data = cart_response.json()
     assert len(cart_data["items"]) == 0
+
+
+def test_cart_cache_headers(client, normal_user_token_headers, db):
+    """Test that cart endpoints return appropriate cache headers."""
+    # First create a product for testing
+    from app.models.product import Product
+    from app.models.category import Category
+    from app.models.brand import Brand
+    import uuid
+    
+    # Create test category
+    category = Category(
+        id=uuid.uuid4(),
+        name="Cache Test Category",
+        slug="cache-test-category",
+        description="Test category for cache headers",
+        is_active=True
+    )
+    db.add(category)
+    
+    # Create test brand
+    brand = Brand(
+        id=uuid.uuid4(),
+        name="Cache Test Brand",
+        slug="cache-test-brand",
+        description="Test brand for cache headers",
+        is_active=True
+    )
+    db.add(brand)
+    
+    # Create test product
+    product = Product(
+        id=uuid.uuid4(),
+        name="Cache Test Product",
+        slug="cache-test-product",
+        description="Test product for cache headers",
+        price=24.99,
+        category_id=category.id,
+        brand_id=brand.id,
+        is_active=True
+    )
+    db.add(product)
+    db.commit()
+    
+    # Test main cart endpoint
+    response = client.post(
+        "/api/v1/carts",
+        headers=normal_user_token_headers
+    )
+    assert response.status_code == 201
+    assert "Cache-Control" in response.headers
+    assert "no-cache" in response.headers["Cache-Control"]
+    assert "no-store" in response.headers["Cache-Control"]
+    assert "must-revalidate" in response.headers["Cache-Control"]
+    assert "Pragma" in response.headers
+    assert "no-cache" in response.headers["Pragma"]
+    assert "Expires" in response.headers
+    assert "0" in response.headers["Expires"]
+    
+    # Test cart summary endpoint
+    response = client.get(
+        "/api/v1/carts/summary",
+        headers=normal_user_token_headers
+    )
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "no-cache" in response.headers["Cache-Control"]
+    
+    # Test add item to cart endpoint with a valid product
+    item_data = {
+        "product_id": str(product.id),
+        "quantity": 1
+    }
+    response = client.post(
+        "/api/v1/carts/items",
+        json=item_data,
+        headers=normal_user_token_headers
+    )
+    assert response.status_code == 201
+    assert "Cache-Control" in response.headers
+    assert "no-cache" in response.headers["Cache-Control"]

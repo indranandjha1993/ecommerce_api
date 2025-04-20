@@ -398,7 +398,7 @@ def test_search_products(client, db):
     db.commit()
     
     # Test searching by name
-    response = client.get("/api/v1/products/products/search?q=smartphone")
+    response = client.get("/api/v1/products/search?q=smartphone")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -408,7 +408,7 @@ def test_search_products(client, db):
     assert "Laptop ABC" not in product_names
     
     # Test searching by description
-    response = client.get("/api/v1/products/products/search?q=powerful")
+    response = client.get("/api/v1/products/search?q=powerful")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

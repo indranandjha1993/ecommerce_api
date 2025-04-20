@@ -111,6 +111,26 @@ class OrderRepository(BaseRepository[Order, OrderCreate, OrderUpdate]):
         )
 
         return orders, total
+        
+    def get_orders_by_payment_status(
+            self, db: Session, payment_status: PaymentStatus, skip: int = 0, limit: int = 100
+    ) -> Tuple[List[Order], int]:
+        """
+        Get orders by payment status with pagination.
+        """
+        query = db.query(Order).filter(Order.payment_status == payment_status)
+        total = query.count()
+
+        orders = (
+            query
+            .options(joinedload(Order.items))
+            .order_by(desc(Order.created_at))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+        return orders, total
 
     def get_orders_by_date_range(
             self, db: Session, start_date, end_date, skip: int = 0, limit: int = 100

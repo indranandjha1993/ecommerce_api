@@ -86,6 +86,10 @@ def test_get_category_not_found(client):
     response = client.get("/api/v1/categories/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
     assert "Category not found" in response.json()["detail"]
+    
+    # Also test with an invalid UUID format
+    response = client.get("/api/v1/categories/invalid-uuid")
+    assert response.status_code == 422  # Validation error
 
 
 def test_update_category(client, superuser_token_headers):
@@ -191,3 +195,37 @@ def test_normal_user_cannot_create_category(client, normal_user_token_headers):
     )
     assert response.status_code == 403
     assert "The user doesn't have enough privileges" in response.json()["detail"]
+
+
+def test_category_cache_headers(client):
+    """Test that category endpoints return appropriate cache headers."""
+    # Test main categories endpoint
+    response = client.get("/api/v1/categories")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test category tree endpoint
+    response = client.get("/api/v1/categories/tree")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test root categories endpoint
+    response = client.get("/api/v1/categories/root")
+    assert response.status_code == 200
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test category by ID endpoint (using a UUID that likely doesn't exist)
+    # Even though it returns 404, it should still have cache headers
+    response = client.get("/api/v1/categories/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
+    
+    # Test category by slug endpoint (using a slug that likely doesn't exist)
+    response = client.get("/api/v1/categories/slug/nonexistent-category")
+    assert response.status_code == 404
+    assert "Cache-Control" in response.headers
+    assert "public" in response.headers["Cache-Control"]
