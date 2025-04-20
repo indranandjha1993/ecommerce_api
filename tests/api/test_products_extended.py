@@ -2,334 +2,380 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-def test_create_product(client, superuser_token_headers, db):
-    """Test creating a new product."""
-    # First create a category and brand
-    from app.models.category import Category
-    from app.models.brand import Brand
-    import uuid
+class TestProductCreation:
+    """Tests for product creation functionality."""
     
-    # Create test category
-    category = Category(
-        id=str(uuid.uuid4()),
-        name="Create Product Category",
-        slug="create-product-category",
-        description="Test category for creating product",
-        is_active=True
-    )
-    db.add(category)
-    
-    # Create test brand
-    brand = Brand(
-        id=str(uuid.uuid4()),
-        name="Create Product Brand",
-        slug="create-product-brand",
-        description="Test brand for creating product",
-        is_active=True
-    )
-    db.add(brand)
-    db.commit()
-    
-    # Create a product
-    product_data = {
-        "name": "Test Product",
-        "slug": "test-product",  # Add slug field
-        "description": "This is a test product",
-        "price": 99.99,
-        "category_id": str(category.id),  # Convert UUID to string
-        "brand_id": str(brand.id),  # Convert UUID to string
-        "is_active": True
-    }
-    response = client.post(
-        "/api/v1/products",
-        json=product_data,
-        headers=superuser_token_headers
-    )
-    assert response.status_code == 201
-    data = response.json()
-    assert data["name"] == product_data["name"]
-    assert data["description"] == product_data["description"]
-    assert float(data["price"]) == float(product_data["price"])
-    assert data["category_id"] == str(category.id)
-    assert data["brand_id"] == str(brand.id)
-    assert "id" in data
+    def test_create_product(self, client, superuser_token_headers, db):
+        """
+        GIVEN a superuser with valid product data
+        WHEN a request is made to create a new product
+        THEN the product should be created successfully
+        """
+        # First create a category and brand
+        from app.models.category import Category
+        from app.models.brand import Brand
+        import uuid
+        
+        # Create test category
+        category = Category(
+            id=str(uuid.uuid4()),
+            name="Create Product Category",
+            slug="create-product-category",
+            description="Test category for creating product",
+            is_active=True
+        )
+        db.add(category)
+        
+        # Create test brand
+        brand = Brand(
+            id=str(uuid.uuid4()),
+            name="Create Product Brand",
+            slug="create-product-brand",
+            description="Test brand for creating product",
+            is_active=True
+        )
+        db.add(brand)
+        db.commit()
+        
+        # Create a product
+        product_data = {
+            "name": "Test Product",
+            "slug": "test-product",
+            "description": "This is a test product",
+            "price": 99.99,
+            "category_id": str(category.id),
+            "brand_id": str(brand.id),
+            "is_active": True
+        }
+        response = client.post(
+            "/api/v1/products",
+            json=product_data,
+            headers=superuser_token_headers
+        )
+        
+        # Verify response
+        assert response.status_code == 201
+        data = response.json()
+        
+        # Verify product data
+        assert data["name"] == product_data["name"]
+        assert data["description"] == product_data["description"]
+        assert float(data["price"]) == float(product_data["price"])
+        assert data["category_id"] == str(category.id)
+        assert data["brand_id"] == str(brand.id)
+        assert "id" in data
 
 
-def test_create_product_invalid_category(client, superuser_token_headers, db):
-    """Test creating a product with an invalid category."""
-    # First create a brand
-    from app.models.brand import Brand
-    import uuid
-    
-    # Create test brand
-    brand = Brand(
-        id=str(uuid.uuid4()),
-        name="Invalid Category Brand",
-        slug="invalid-category-brand",
-        description="Test brand for invalid category",
-        is_active=True
-    )
-    db.add(brand)
-    db.commit()
-    
-    # Try to create a product with a null category
-    product_data = {
-        "name": "Invalid Category Product",
-        "slug": "invalid-category-product",
-        "description": "This product has an invalid category",
-        "price": 49.99,
-        "category_id": None,  # Null category should be caught by validation
-        "brand_id": str(brand.id),
-        "is_active": True
-    }
-    response = client.post(
-        "/api/v1/products",
-        json=product_data,
-        headers=superuser_token_headers
-    )
-    # Either 422 (validation error) or 201 (if null category is allowed)
-    assert response.status_code in [422, 201]
+    def test_create_product_invalid_category(self, client, superuser_token_headers, db):
+        """
+        GIVEN a superuser with product data containing an invalid category
+        WHEN a request is made to create the product
+        THEN the request should be rejected or accepted based on validation rules
+        """
+        # First create a brand
+        from app.models.brand import Brand
+        import uuid
+        
+        # Create test brand
+        brand = Brand(
+            id=str(uuid.uuid4()),
+            name="Invalid Category Brand",
+            slug="invalid-category-brand",
+            description="Test brand for invalid category",
+            is_active=True
+        )
+        db.add(brand)
+        db.commit()
+        
+        # Try to create a product with a null category
+        product_data = {
+            "name": "Invalid Category Product",
+            "slug": "invalid-category-product",
+            "description": "This product has an invalid category",
+            "price": 49.99,
+            "category_id": None,  # Null category should be caught by validation
+            "brand_id": str(brand.id),
+            "is_active": True
+        }
+        response = client.post(
+            "/api/v1/products",
+            json=product_data,
+            headers=superuser_token_headers
+        )
+        
+        # Either 422 (validation error) or 201 (if null category is allowed)
+        assert response.status_code in [422, 201]
 
 
-def test_create_product_invalid_brand(client, superuser_token_headers, db):
-    """Test creating a product with an invalid brand."""
-    # First create a category
-    from app.models.category import Category
-    import uuid
-    
-    # Create test category
-    category = Category(
-        id=str(uuid.uuid4()),
-        name="Invalid Brand Category",
-        slug="invalid-brand-category",
-        description="Test category for invalid brand",
-        is_active=True
-    )
-    db.add(category)
-    db.commit()
-    
-    # Try to create a product with a null brand
-    product_data = {
-        "name": "Invalid Brand Product",
-        "slug": "invalid-brand-product",
-        "description": "This product has an invalid brand",
-        "price": 29.99,
-        "category_id": str(category.id),
-        "brand_id": None,  # Null brand should be caught by validation
-        "is_active": True
-    }
-    response = client.post(
-        "/api/v1/products",
-        json=product_data,
-        headers=superuser_token_headers
-    )
-    # Either 422 (validation error) or 201 (if null brand is allowed)
-    assert response.status_code in [422, 201]
+    def test_create_product_invalid_brand(self, client, superuser_token_headers, db):
+        """
+        GIVEN a superuser with product data containing an invalid brand
+        WHEN a request is made to create the product
+        THEN the request should be rejected or accepted based on validation rules
+        """
+        # First create a category
+        from app.models.category import Category
+        import uuid
+        
+        # Create test category
+        category = Category(
+            id=str(uuid.uuid4()),
+            name="Invalid Brand Category",
+            slug="invalid-brand-category",
+            description="Test category for invalid brand",
+            is_active=True
+        )
+        db.add(category)
+        db.commit()
+        
+        # Try to create a product with a null brand
+        product_data = {
+            "name": "Invalid Brand Product",
+            "slug": "invalid-brand-product",
+            "description": "This product has an invalid brand",
+            "price": 29.99,
+            "category_id": str(category.id),
+            "brand_id": None,  # Null brand should be caught by validation
+            "is_active": True
+        }
+        response = client.post(
+            "/api/v1/products",
+            json=product_data,
+            headers=superuser_token_headers
+        )
+        
+        # Either 422 (validation error) or 201 (if null brand is allowed)
+        assert response.status_code in [422, 201]
 
 
-def test_create_product_negative_price(client, superuser_token_headers, db):
-    """Test creating a product with a negative price."""
-    # First create a category and brand
-    from app.models.category import Category
-    from app.models.brand import Brand
-    import uuid
-    
-    # Create test category
-    category = Category(
-        id=str(uuid.uuid4()),
-        name="Negative Price Category",
-        slug="negative-price-category",
-        description="Test category for negative price",
-        is_active=True
-    )
-    db.add(category)
-    
-    # Create test brand
-    brand = Brand(
-        id=str(uuid.uuid4()),
-        name="Negative Price Brand",
-        slug="negative-price-brand",
-        description="Test brand for negative price",
-        is_active=True
-    )
-    db.add(brand)
-    db.commit()
-    
-    # Try to create a product with a negative price
-    product_data = {
-        "name": "Negative Price Product",
-        "slug": "negative-price-product",  # Add slug field
-        "description": "This product has a negative price",
-        "price": -10.00,
-        "category_id": str(category.id),  # Convert UUID to string
-        "brand_id": str(brand.id),  # Convert UUID to string
-        "is_active": True
-    }
-    response = client.post(
-        "/api/v1/products",
-        json=product_data,
-        headers=superuser_token_headers
-    )
-    assert response.status_code in [422, 201]  # Some implementations might allow negative prices
+    def test_create_product_negative_price(self, client, superuser_token_headers, db):
+        """
+        GIVEN a superuser with product data containing a negative price
+        WHEN a request is made to create the product
+        THEN the request should be rejected or accepted based on validation rules
+        """
+        # First create a category and brand
+        from app.models.category import Category
+        from app.models.brand import Brand
+        import uuid
+        
+        # Create test category
+        category = Category(
+            id=str(uuid.uuid4()),
+            name="Negative Price Category",
+            slug="negative-price-category",
+            description="Test category for negative price",
+            is_active=True
+        )
+        db.add(category)
+        
+        # Create test brand
+        brand = Brand(
+            id=str(uuid.uuid4()),
+            name="Negative Price Brand",
+            slug="negative-price-brand",
+            description="Test brand for negative price",
+            is_active=True
+        )
+        db.add(brand)
+        db.commit()
+        
+        # Try to create a product with a negative price
+        product_data = {
+            "name": "Negative Price Product",
+            "slug": "negative-price-product",
+            "description": "This product has a negative price",
+            "price": -10.00,
+            "category_id": str(category.id),
+            "brand_id": str(brand.id),
+            "is_active": True
+        }
+        response = client.post(
+            "/api/v1/products",
+            json=product_data,
+            headers=superuser_token_headers
+        )
+        
+        # Either 422 (validation error) or 201 (if negative prices are allowed)
+        assert response.status_code in [422, 201]
 
 
-def test_get_products_with_filters(client, db):
-    """Test getting products with filters."""
-    # First create some products with different categories and brands
-    from app.models.product import Product
-    from app.models.category import Category
-    from app.models.brand import Brand
-    import uuid
+class TestProductFiltering:
+    """Tests for product filtering functionality."""
     
-    # Create test categories
-    category1 = Category(
-        id=str(uuid.uuid4()),
-        name="Filter Category 1",
-        slug="filter-category-1",
-        description="Test category 1 for filtering",
-        is_active=True
-    )
-    db.add(category1)
-    
-    category2 = Category(
-        id=str(uuid.uuid4()),
-        name="Filter Category 2",
-        slug="filter-category-2",
-        description="Test category 2 for filtering",
-        is_active=True
-    )
-    db.add(category2)
-    
-    # Create test brands
-    brand1 = Brand(
-        id=str(uuid.uuid4()),
-        name="Filter Brand 1",
-        slug="filter-brand-1",
-        description="Test brand 1 for filtering",
-        is_active=True
-    )
-    db.add(brand1)
-    
-    brand2 = Brand(
-        id=str(uuid.uuid4()),
-        name="Filter Brand 2",
-        slug="filter-brand-2",
-        description="Test brand 2 for filtering",
-        is_active=True
-    )
-    db.add(brand2)
-    
-    # Create test products
-    product1 = Product(
-        id=str(uuid.uuid4()),
-        name="Filter Product 1",
-        slug="filter-product-1",  # Add slug field
-        description="Test product 1 for filtering",
-        price=19.99,
-        category_id=category1.id,
-        brand_id=brand1.id,
-        is_active=True
-    )
-    db.add(product1)
-    
-    product2 = Product(
-        id=str(uuid.uuid4()),
-        name="Filter Product 2",
-        slug="filter-product-2",  # Add slug field
-        description="Test product 2 for filtering",
-        price=29.99,
-        category_id=category1.id,
-        brand_id=brand2.id,
-        is_active=True
-    )
-    db.add(product2)
-    
-    product3 = Product(
-        id=str(uuid.uuid4()),
-        name="Filter Product 3",
-        slug="filter-product-3",  # Add slug field
-        description="Test product 3 for filtering",
-        price=39.99,
-        category_id=category2.id,
-        brand_id=brand1.id,
-        is_active=True
-    )
-    db.add(product3)
-    
-    product4 = Product(
-        id=str(uuid.uuid4()),
-        name="Filter Product 4",
-        slug="filter-product-4",  # Add slug field
-        description="Test product 4 for filtering",
-        price=49.99,
-        category_id=category2.id,
-        brand_id=brand2.id,
-        is_active=False  # Inactive product
-    )
-    db.add(product4)
-    db.commit()
-    
-    # Test filtering by category
-    response = client.get(f"/api/v1/products?category_id={str(category1.id)}")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    assert len(data["items"]) == 2
-    product_names = [p["name"] for p in data["items"]]
-    assert "Filter Product 1" in product_names
-    assert "Filter Product 2" in product_names
-    
-    # Test filtering by brand
-    response = client.get(f"/api/v1/products?brand_id={str(brand1.id)}")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    assert len(data["items"]) == 2
-    product_names = [p["name"] for p in data["items"]]
-    assert "Filter Product 1" in product_names
-    assert "Filter Product 3" in product_names
-    
-    # Test filtering by min_price
-    response = client.get("/api/v1/products?min_price=30")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    product_names = [p["name"] for p in data["items"]]
-    assert "Filter Product 3" in product_names
-    assert "Filter Product 1" not in product_names
-    assert "Filter Product 2" not in product_names
-    
-    # Test filtering by max_price
-    response = client.get("/api/v1/products?max_price=30")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    product_names = [p["name"] for p in data["items"]]
-    assert "Filter Product 1" in product_names
-    assert "Filter Product 2" in product_names
-    assert "Filter Product 3" not in product_names
-    
-    # Test filtering by is_active
-    response = client.get("/api/v1/products?is_active=false")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    # The API might filter out inactive products by default, so we'll just check the response structure
-    assert isinstance(data["items"], list)
-    
-    # Test combined filters
-    response = client.get(f"/api/v1/products?category_id={str(category1.id)}&brand_id={str(brand1.id)}")
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, dict)  # Response is a paginated object
-    assert "items" in data
-    assert len(data["items"]) == 1
-    assert data["items"][0]["name"] == "Filter Product 1"
+    def test_get_products_with_filters(self, client, db):
+        """
+        GIVEN a database with various products
+        WHEN requests are made with different filter parameters
+        THEN the correct filtered products should be returned
+        """
+        # First create some products with different categories and brands
+        from app.models.product import Product
+        from app.models.category import Category
+        from app.models.brand import Brand
+        import uuid
+        
+        # Create test categories
+        category1 = Category(
+            id=str(uuid.uuid4()),
+            name="Filter Category 1",
+            slug="filter-category-1",
+            description="Test category 1 for filtering",
+            is_active=True
+        )
+        db.add(category1)
+        
+        category2 = Category(
+            id=str(uuid.uuid4()),
+            name="Filter Category 2",
+            slug="filter-category-2",
+            description="Test category 2 for filtering",
+            is_active=True
+        )
+        db.add(category2)
+        
+        # Create test brands
+        brand1 = Brand(
+            id=str(uuid.uuid4()),
+            name="Filter Brand 1",
+            slug="filter-brand-1",
+            description="Test brand 1 for filtering",
+            is_active=True
+        )
+        db.add(brand1)
+        
+        brand2 = Brand(
+            id=str(uuid.uuid4()),
+            name="Filter Brand 2",
+            slug="filter-brand-2",
+            description="Test brand 2 for filtering",
+            is_active=True
+        )
+        db.add(brand2)
+        
+        # Create test products
+        product1 = Product(
+            id=str(uuid.uuid4()),
+            name="Filter Product 1",
+            slug="filter-product-1",
+            description="Test product 1 for filtering",
+            price=19.99,
+            category_id=category1.id,
+            brand_id=brand1.id,
+            is_active=True
+        )
+        db.add(product1)
+        
+        product2 = Product(
+            id=str(uuid.uuid4()),
+            name="Filter Product 2",
+            slug="filter-product-2",
+            description="Test product 2 for filtering",
+            price=29.99,
+            category_id=category1.id,
+            brand_id=brand2.id,
+            is_active=True
+        )
+        db.add(product2)
+        
+        product3 = Product(
+            id=str(uuid.uuid4()),
+            name="Filter Product 3",
+            slug="filter-product-3",
+            description="Test product 3 for filtering",
+            price=39.99,
+            category_id=category2.id,
+            brand_id=brand1.id,
+            is_active=True
+        )
+        db.add(product3)
+        
+        product4 = Product(
+            id=str(uuid.uuid4()),
+            name="Filter Product 4",
+            slug="filter-product-4",
+            description="Test product 4 for filtering",
+            price=49.99,
+            category_id=category2.id,
+            brand_id=brand2.id,
+            is_active=False  # Inactive product
+        )
+        db.add(product4)
+        db.commit()
+        
+        # Test case 1: Filtering by category
+        response = client.get(f"/api/v1/products?category_id={str(category1.id)}")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        assert len(data["items"]) == 2
+        product_names = [p["name"] for p in data["items"]]
+        assert "Filter Product 1" in product_names
+        assert "Filter Product 2" in product_names
+        
+        # Test case 2: Filtering by brand
+        response = client.get(f"/api/v1/products?brand_id={str(brand1.id)}")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        assert len(data["items"]) == 2
+        product_names = [p["name"] for p in data["items"]]
+        assert "Filter Product 1" in product_names
+        assert "Filter Product 3" in product_names
+        
+        # Test case 3: Filtering by min_price
+        response = client.get("/api/v1/products?min_price=30")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        product_names = [p["name"] for p in data["items"]]
+        assert "Filter Product 3" in product_names
+        assert "Filter Product 1" not in product_names
+        assert "Filter Product 2" not in product_names
+        
+        # Test case 4: Filtering by max_price
+        response = client.get("/api/v1/products?max_price=30")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        product_names = [p["name"] for p in data["items"]]
+        assert "Filter Product 1" in product_names
+        assert "Filter Product 2" in product_names
+        assert "Filter Product 3" not in product_names
+        
+        # Test case 5: Filtering by is_active
+        response = client.get("/api/v1/products?is_active=false")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        # The API might filter out inactive products by default, so we'll just check the response structure
+        assert isinstance(data["items"], list)
+        
+        # Test case 6: Combined filters
+        response = client.get(f"/api/v1/products?category_id={str(category1.id)}&brand_id={str(brand1.id)}")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, dict)  # Response is a paginated object
+        assert "items" in data
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Filter Product 1"
 
 
 def test_search_products(client, db):
