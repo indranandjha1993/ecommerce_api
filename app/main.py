@@ -9,6 +9,10 @@ from app.api.api import api_router
 from app.core.config import settings
 from app.core.exceptions import CustomException
 
+# Load all models and configure relationships
+from app.models import load_models
+load_models()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="E-commerce API Backend",
