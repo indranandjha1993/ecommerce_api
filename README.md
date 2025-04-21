@@ -1,8 +1,10 @@
-# E-commerce API Backend
+# ShopSmart E-commerce Platform
 
-A production-ready RESTful API backend for e-commerce applications built with FastAPI and PostgreSQL.
+A full-stack e-commerce platform with a FastAPI backend and React frontend.
 
 ## Features
+
+### Backend
 
 - **User Management**: Authentication, authorization, user profiles
 - **Product Catalog**: Categories, products, attributes, variants
@@ -12,7 +14,20 @@ A production-ready RESTful API backend for e-commerce applications built with Fa
 - **Reviews & Ratings**: Customer feedback
 - **Promotions & Discounts**: Coupons, sales, special offers
 
+### Frontend
+
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Product Browsing**: Browse products by category, brand, or search
+- **Product Details**: View detailed product information, images, and variants
+- **Shopping Cart**: Add products to cart, update quantities, and remove items
+- **Checkout Process**: Complete purchases with shipping and payment information
+- **User Authentication**: Register, login, and manage user profile
+- **Order Management**: View order history and details
+- **Wishlist**: Save products for later
+
 ## Tech Stack
+
+### Backend
 
 - **Framework**: FastAPI
 - **Database**: PostgreSQL
@@ -24,6 +39,18 @@ A production-ready RESTful API backend for e-commerce applications built with Fa
 - **CI/CD**: GitHub Actions
 - **Caching**: Redis
 - **Payment Integration**: Stripe, PayPal
+
+### Frontend
+
+- **Framework**: React
+- **State Management**: Redux
+- **Routing**: React Router
+- **Styling**: Tailwind CSS
+- **HTTP Client**: Axios
+- **Form Handling**: React Hook Form
+- **Validation**: Zod
+- **Type Safety**: TypeScript
+- **Build Tool**: Vite
 
 ## Project Structure
 
@@ -41,7 +68,19 @@ ecommerce_api/
 │   ├── utils/                  # Utility functions
 │   ├── tasks/                  # Background tasks
 │   └── main.py                 # FastAPI application
-├── tests/                      # Tests
+├── frontend/                   # React frontend
+│   ├── public/                 # Static files
+│   ├── src/                    # Source code
+│   │   ├── components/         # React components
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── pages/              # Page components
+│   │   ├── services/           # API services
+│   │   ├── store/              # Redux store
+│   │   ├── types/              # TypeScript types
+│   │   └── utils/              # Utility functions
+│   ├── package.json            # Frontend dependencies
+│   └── vite.config.ts          # Vite configuration
+├── tests/                      # Backend tests
 ├── .env                        # Environment variables
 ├── .gitignore                  # Git ignore rules
 ├── requirements.txt            # Python dependencies
@@ -57,8 +96,9 @@ ecommerce_api/
 
 - Docker and Docker Compose installed
 - Git
+- Node.js 16+ (for frontend development)
 
-### Installation
+### Backend Installation
 
 1. Clone the repository:
    ```bash
@@ -83,6 +123,25 @@ ecommerce_api/
    docker-compose exec api python -m app.initial_data
    ```
 
+### Frontend Installation
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. The frontend will be available at http://localhost:3000
+
 ### API Documentation
 
 Once the application is running, you can access:
@@ -92,7 +151,7 @@ Once the application is running, you can access:
 
 ## Development
 
-### Running Tests
+### Running Backend Tests
 
 ```bash
 docker-compose exec api pytest
@@ -105,6 +164,13 @@ After changing models:
 ```bash
 docker-compose exec api alembic revision --autogenerate -m "description"
 docker-compose exec api alembic upgrade head
+```
+
+### Building Frontend for Production
+
+```bash
+cd frontend
+npm run build
 ```
 
 ## Deployment
