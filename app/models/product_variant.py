@@ -1,9 +1,6 @@
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
-    DateTime,
     Float,
     ForeignKey,
     Numeric,
@@ -12,16 +9,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
-from app.utils.datetime_utils import utcnow
+from app.models.base import BaseModel
 
 
-class ProductVariant(Base):
+class ProductVariant(BaseModel):
     """ProductVariant model for handling product variations."""
 
     __tablename__ = "product_variants"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
 
     # Variant information
@@ -41,10 +36,6 @@ class ProductVariant(Base):
 
     # Additional data
     additional_data = Column(JSONB, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     product = relationship("Product", back_populates="variants")
@@ -82,19 +73,14 @@ class ProductVariant(Base):
         return ", ".join(attributes)
 
 
-class ProductVariantAttribute(Base):
+class ProductVariantAttribute(BaseModel):
     """Links a ProductVariant to its specific attribute values."""
 
     __tablename__ = "product_variant_attributes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=False)
     attribute_id = Column(UUID(as_uuid=True), ForeignKey("product_attributes.id"), nullable=False)
     attribute_value_id = Column(UUID(as_uuid=True), ForeignKey("product_attribute_values.id"), nullable=False)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     variant = relationship("ProductVariant", back_populates="variant_attributes")

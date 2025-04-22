@@ -1,5 +1,6 @@
-# Import and configure all models
+# Import all models
 from app.models import load_models
+from app.db.session import Base
 
-# Get the Base class with all models registered
-Base = load_models()
+# Load all models to register them with the Base class
+load_models()

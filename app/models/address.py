@@ -1,18 +1,16 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Boolean,
     Column,
-    DateTime,
     Enum,
     ForeignKey,
     String,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
-from app.db.session import Base
-from app.utils.datetime_utils import utcnow
+from app.models.base import BaseModel
 
 
 class AddressType(str, enum.Enum):
@@ -22,12 +20,11 @@ class AddressType(str, enum.Enum):
     BOTH = "both"
 
 
-class Address(Base):
+class Address(BaseModel):
     """Address model for user shipping and billing addresses."""
 
     __tablename__ = "addresses"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     address_type = Column(Enum(AddressType), default=AddressType.BOTH)
     is_default = Column(Boolean, default=False)
@@ -44,11 +41,18 @@ class Address(Base):
     country = Column(String(100), nullable=False)
     phone_number = Column(String(20), nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
-    # Relationships are set dynamically in the configure_relationships function
+    # Relationships
+    user = relationship("User", back_populates="addresses")
+    shipping_orders = relationship(
+        "Order",
+        foreign_keys="[Order.shipping_address_id]",
+        back_populates="shipping_address"
+    )
+    billing_orders = relationship(
+        "Order",
+        foreign_keys="[Order.billing_address_id]",
+        back_populates="billing_address"
+    )
 
     def __repr__(self):
         return f"<Address(id={self.id}, user_id={self.user_id}, type={self.address_type})>"

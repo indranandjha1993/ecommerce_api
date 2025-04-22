@@ -1,5 +1,4 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Boolean,
@@ -15,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
@@ -27,12 +26,10 @@ class DiscountType(str, enum.Enum):
     BUY_X_GET_Y = "buy_x_get_y"
 
 
-class Coupon(Base):
+class Coupon(BaseModel):
     """Coupon model for discounts and promotions."""
 
     __tablename__ = "coupons"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Coupon identification
     code = Column(String(50), nullable=False, unique=True, index=True)
@@ -79,9 +76,7 @@ class Coupon(Base):
     # Additional data
     coupon_metadata = Column(JSONB, nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Creator
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     # Relationships
@@ -130,21 +125,17 @@ class Coupon(Base):
         return self.current_usage_count >= self.usage_limit
 
 
-class CouponUsage(Base):
+class CouponUsage(BaseModel):
     """CouponUsage model for tracking coupon usage."""
 
     __tablename__ = "coupon_usage"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("coupons.id"), nullable=False)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     # Usage details
     discount_amount = Column(Numeric(precision=10, scale=2), nullable=False)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     coupon = relationship("Coupon", back_populates="usage_history")

@@ -1,5 +1,4 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Column,
@@ -14,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
@@ -40,12 +39,11 @@ class ShippingCarrier(str, enum.Enum):
     CUSTOM = "custom"
 
 
-class Shipping(Base):
+class Shipping(BaseModel):
     """Shipping model for handling order shipments."""
 
     __tablename__ = "shipping"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
 
     # Shipping information
@@ -73,10 +71,6 @@ class Shipping(Base):
     # Additional data
     shipping_metadata = Column(JSONB, nullable=True)
     notes = Column(Text, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     order = relationship("Order", back_populates="shipping_details")
@@ -107,12 +101,11 @@ class Shipping(Base):
         return None
 
 
-class ShipmentPackage(Base):
+class ShipmentPackage(BaseModel):
     """ShipmentPackage model for individual packages in a shipment."""
 
     __tablename__ = "shipment_packages"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     shipment_id = Column(UUID(as_uuid=True), ForeignKey("shipping.id"), nullable=False)
 
     # Package information
@@ -131,10 +124,6 @@ class ShipmentPackage(Base):
     # Additional data
     package_metadata = Column(JSONB, nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
     # Relationships
     shipment = relationship("Shipping", back_populates="packages")
     items = relationship("ShipmentItem", back_populates="package", cascade="all, delete-orphan")
@@ -143,12 +132,11 @@ class ShipmentPackage(Base):
         return f"<ShipmentPackage(id={self.id}, shipment_id={self.shipment_id}, package_number={self.package_number})>"
 
 
-class ShipmentItem(Base):
+class ShipmentItem(BaseModel):
     """ShipmentItem model for items in a package."""
 
     __tablename__ = "shipment_items"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     package_id = Column(UUID(as_uuid=True), ForeignKey("shipment_packages.id"), nullable=False)
     order_item_id = Column(UUID(as_uuid=True), ForeignKey("order_items.id"), nullable=False)
 
@@ -157,9 +145,6 @@ class ShipmentItem(Base):
 
     # Additional data
     shipment_item_metadata = Column(JSONB, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     package = relationship("ShipmentPackage", back_populates="items")

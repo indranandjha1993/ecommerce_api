@@ -1,25 +1,19 @@
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
-    DateTime,
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
-from app.utils.datetime_utils import utcnow
+from app.models.base import BaseModel
 
 
-class Brand(Base):
+class Brand(BaseModel):
     """Brand model for organizing products by manufacturer/brand."""
 
     __tablename__ = "brands"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False, unique=True)
     slug = Column(String(100), nullable=False, unique=True, index=True)
     description = Column(Text, nullable=True)
@@ -31,10 +25,6 @@ class Brand(Base):
     # Status
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     products = relationship("Product", back_populates="brand")

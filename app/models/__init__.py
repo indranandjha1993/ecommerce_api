@@ -1,12 +1,12 @@
 def load_models():
     """
-    Load all models and configure their relationships.
-    This is a centralized function to import all models in the correct order.
+    Load all models.
+    This is a centralized function to import all models.
     """
-    # First import the Base
-    from app.db.session import Base
+    # First import the BaseModel
+    from app.models.base import BaseModel
 
-    # Import all models - order doesn't matter for table definitions
+    # Import all models
     from app.models.user import User
     from app.models.address import Address
     from app.models.brand import Brand
@@ -21,8 +21,5 @@ def load_models():
     from app.models.review import Review, ReviewReply
     from app.models.inventory import Inventory, InventoryLocation, StockMovement
 
-    # Configure relationships after all models are imported
-    from app.models.relationships import configure_relationships
-    configure_relationships()
-
-    return Base
+    # No need to return anything, models are registered with Base when imported
+    return None

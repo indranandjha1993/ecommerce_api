@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
@@ -12,16 +10,15 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
-class Review(Base):
+class Review(BaseModel):
     """Review model for product reviews and ratings."""
 
     __tablename__ = "reviews"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     order_item_id = Column(UUID(as_uuid=True), ForeignKey("order_items.id"), nullable=True)
@@ -49,17 +46,13 @@ class Review(Base):
     moderated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     moderated_at = Column(DateTime, nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
     # If the review has been edited
     is_edited = Column(Boolean, default=False)
     edited_at = Column(DateTime, nullable=True)
 
     # Relationships
     product = relationship("Product", back_populates="reviews")
-    user = relationship("User", foreign_keys=[user_id])
+    user = relationship("User", foreign_keys=[user_id], back_populates="reviews")
     order_item = relationship("OrderItem")
     moderator = relationship("User", foreign_keys=[moderated_by])
     replies = relationship("ReviewReply", back_populates="review", cascade="all, delete-orphan")
@@ -81,12 +74,11 @@ class Review(Base):
         return self.is_approved and self.moderation_status == "approved"
 
 
-class ReviewReply(Base):
+class ReviewReply(BaseModel):
     """ReviewReply model for replies to reviews."""
 
     __tablename__ = "review_replies"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     review_id = Column(UUID(as_uuid=True), ForeignKey("reviews.id"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
@@ -101,10 +93,6 @@ class ReviewReply(Base):
     moderation_notes = Column(Text, nullable=True)
     moderated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     moderated_at = Column(DateTime, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # If the reply has been edited
     is_edited = Column(Boolean, default=False)

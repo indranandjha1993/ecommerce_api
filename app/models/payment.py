@@ -1,5 +1,4 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Boolean,
@@ -14,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
@@ -38,12 +37,11 @@ class PaymentType(str, enum.Enum):
     VOID = "void"
 
 
-class Payment(Base):
+class Payment(BaseModel):
     """Payment model for handling order payments."""
 
     __tablename__ = "payments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
 
     # Payment information
@@ -76,9 +74,7 @@ class Payment(Base):
     # Additional data
     payment_metadata = Column(JSONB, nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Processing timestamp
     processed_at = Column(DateTime, nullable=True)
 
     # Relationships

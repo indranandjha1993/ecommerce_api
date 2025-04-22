@@ -1,5 +1,4 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Column,
@@ -14,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
@@ -43,12 +42,11 @@ class PaymentStatus(str, enum.Enum):
     FAILED = "failed"
 
 
-class Order(Base):
+class Order(BaseModel):
     """Order model for managing customer orders."""
 
     __tablename__ = "orders"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_number = Column(String(50), unique=True, nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Can be null for guest orders
 
@@ -92,9 +90,7 @@ class Order(Base):
     # Guest orders use a unique token for lookup
     guest_token = Column(String(255), nullable=True, unique=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Order completion
     completed_at = Column(DateTime, nullable=True)
 
     # If order was created from a cart
@@ -132,12 +128,12 @@ class Order(Base):
         """Get the total number of items in the order."""
         return len(self.items) if hasattr(self, 'items') else 0
 
-class OrderItem(Base):
+
+class OrderItem(BaseModel):
     """Order item model for items in an order."""
 
     __tablename__ = "order_items"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
 
     # Product information
@@ -160,10 +156,6 @@ class OrderItem(Base):
     # Additional information
     options = Column(JSONB, nullable=True)  # Store selected options, customizations
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
     # Relationships
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
@@ -174,12 +166,11 @@ class OrderItem(Base):
         return f"<OrderItem(id={self.id}, product={self.product_name}, quantity={self.quantity})>"
 
 
-class Refund(Base):
+class Refund(BaseModel):
     """Refund model for managing order refunds."""
 
     __tablename__ = "refunds"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
 
     # Refund information
@@ -199,9 +190,7 @@ class Refund(Base):
     # Additional data
     refund_metadata = Column(JSONB, nullable=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Processing timestamp
     processed_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -214,12 +203,11 @@ class Refund(Base):
         return f"<Refund(id={self.id}, order_id={self.order_id}, amount={self.amount})>"
 
 
-class RefundItem(Base):
+class RefundItem(BaseModel):
     """Refund item model for items in a refund."""
 
     __tablename__ = "refund_items"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     refund_id = Column(UUID(as_uuid=True), ForeignKey("refunds.id"), nullable=False)
     order_item_id = Column(UUID(as_uuid=True), ForeignKey("order_items.id"), nullable=False)
 
@@ -230,9 +218,6 @@ class RefundItem(Base):
 
     # Additional data
     refund_item_metadata = Column(JSONB, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     refund = relationship("Refund", back_populates="items")

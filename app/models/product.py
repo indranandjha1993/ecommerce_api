@@ -1,9 +1,6 @@
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
-    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -14,16 +11,13 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
-from app.utils.datetime_utils import utcnow
+from app.models.base import BaseModel
 
 
-class Product(Base):
+class Product(BaseModel):
     """Product model for the main product catalog."""
 
     __tablename__ = "products"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Core product information
     name = Column(String(255), nullable=False)
@@ -60,10 +54,6 @@ class Product(Base):
 
     # Additional data (can store structured or unstructured data)
     additional_data = Column(JSONB, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     category = relationship("Category", back_populates="products")
@@ -107,12 +97,11 @@ class Product(Base):
         return self.images[0] if self.images else None
 
 
-class ProductImage(Base):
+class ProductImage(BaseModel):
     """Product image model."""
 
     __tablename__ = "product_images"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=True)
 
@@ -122,10 +111,6 @@ class ProductImage(Base):
     is_primary = Column(Boolean, default=False)
     display_order = Column(Integer, default=0)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
-
     # Relationships
     product = relationship("Product", back_populates="images")
     variant = relationship("ProductVariant", back_populates="images")
@@ -134,19 +119,14 @@ class ProductImage(Base):
         return f"<ProductImage(id={self.id}, product_id={self.product_id})>"
 
 
-class ProductAttribute(Base):
+class ProductAttribute(BaseModel):
     """Product attribute model (e.g., Color, Size, Material)."""
 
     __tablename__ = "product_attributes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False, unique=True)
     slug = Column(String(100), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     values = relationship("ProductAttributeValue", back_populates="attribute", cascade="all, delete-orphan")
@@ -156,21 +136,16 @@ class ProductAttribute(Base):
         return f"<ProductAttribute(id={self.id}, name={self.name})>"
 
 
-class ProductAttributeValue(Base):
+class ProductAttributeValue(BaseModel):
     """Product attribute value model (e.g., Red, XL, Cotton)."""
 
     __tablename__ = "product_attribute_values"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     attribute_id = Column(UUID(as_uuid=True), ForeignKey("product_attributes.id"), nullable=False)
 
     # Value information
     value = Column(String(255), nullable=False)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     product = relationship("Product", back_populates="attribute_values")
@@ -178,4 +153,4 @@ class ProductAttributeValue(Base):
     variant_attributes = relationship("ProductVariantAttribute", back_populates="attribute_value")
 
     def __repr__(self):
-        return f"<ProductAttributeValue(id={self.id}, attribute={self.attribute.name}, value={self.value})>"
+        return f"<ProductAttributeValue(id={self.id}, attribute={self.attribute.name if self.attribute else None}, value={self.value})>"

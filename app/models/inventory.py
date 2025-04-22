@@ -1,5 +1,4 @@
 import enum
-import uuid
 
 from sqlalchemy import (
     Boolean,
@@ -14,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
@@ -27,12 +26,11 @@ class StockStatus(str, enum.Enum):
     DISCONTINUED = "discontinued"
 
 
-class Inventory(Base):
+class Inventory(BaseModel):
     """Inventory model for tracking product stock levels."""
 
     __tablename__ = "inventory"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=True)
 
@@ -49,10 +47,8 @@ class Inventory(Base):
     # Status
     status = Column(Enum(StockStatus), default=StockStatus.IN_STOCK)
 
-    # Metadata
+    # Last inventory check
     last_checked = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     product = relationship("Product", back_populates="inventory")
@@ -69,12 +65,11 @@ class Inventory(Base):
         return max(0, self.quantity - self.reserved_quantity)
 
 
-class InventoryLocation(Base):
+class InventoryLocation(BaseModel):
     """Inventory location model for warehouses, stores, etc."""
 
     __tablename__ = "inventory_locations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
     code = Column(String(50), nullable=False, unique=True)
     description = Column(Text, nullable=True)
@@ -88,10 +83,6 @@ class InventoryLocation(Base):
 
     # Status
     is_active = Column(Boolean, default=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     inventory_items = relationship("Inventory", back_populates="location")
@@ -112,12 +103,11 @@ class StockMovementType(str, enum.Enum):
     RELEASED = "released"  # Released from reservation
 
 
-class StockMovement(Base):
+class StockMovement(BaseModel):
     """Stock movement model for tracking inventory changes."""
 
     __tablename__ = "stock_movements"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     inventory_id = Column(UUID(as_uuid=True), ForeignKey("inventory.id"), nullable=False)
 
     # Movement details
@@ -133,9 +123,6 @@ class StockMovement(Base):
 
     # User who made the change
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
 
     # Relationships
     inventory = relationship("Inventory", back_populates="stock_movements")

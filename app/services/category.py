@@ -39,18 +39,24 @@ class CategoryService:
         """
         Get a category with its children.
         """
-        category = category_repository.get_with_children(db, id=category_id)
+        category = category_repository.get(db, id=category_id)
         if not category:
             raise NotFoundException(detail="Category not found")
+        
+        # Manually get children
+        category.children = db.query(Category).filter(Category.parent_id == category_id).all()
         return category
 
     def get_by_slug_with_children(self, db: Session, slug: str) -> Category:
         """
         Get a category by slug with its children.
         """
-        category = category_repository.get_by_slug_with_children(db, slug=slug)
+        category = category_repository.get_by_slug(db, slug=slug)
         if not category:
             raise NotFoundException(detail="Category not found")
+        
+        # Manually get children
+        category.children = db.query(Category).filter(Category.parent_id == category.id).all()
         return category
 
     def get_all(self, db: Session, skip: int = 0, limit: int = 100) -> List[Category]:
@@ -120,12 +126,13 @@ class CategoryService:
         """
         Delete a category.
         """
-        category = category_repository.get_with_children(db, id=category_id)
+        category = category_repository.get(db, id=category_id)
         if not category:
             raise NotFoundException(detail="Category not found")
 
         # Check if category has children
-        if category.children:
+        children = db.query(Category).filter(Category.parent_id == category_id).all()
+        if children:
             raise BadRequestException(detail="Cannot delete category with children")
 
         # Check if category has products

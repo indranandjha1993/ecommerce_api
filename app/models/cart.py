@@ -1,8 +1,6 @@
 """
 Cart model for managing shopping carts.
 """
-import uuid
-
 from sqlalchemy import (
     Boolean,
     Column,
@@ -15,16 +13,15 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
-from app.db.session import Base
+from app.models.base import BaseModel
 from app.utils.datetime_utils import utcnow
 
 
-class Cart(Base):
+class Cart(BaseModel):
     """Cart model for managing shopping carts."""
 
     __tablename__ = "carts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Can be null for guest carts
 
     # Guest carts use a unique token
@@ -36,9 +33,7 @@ class Cart(Base):
     # Status
     is_active = Column(Boolean, default=True)
 
-    # Metadata
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Activity tracking
     last_activity = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
@@ -64,12 +59,11 @@ class Cart(Base):
         return sum(item.subtotal for item in self.items)
 
 
-class CartItem(Base):
+class CartItem(BaseModel):
     """Cart item model for items in a shopping cart."""
 
     __tablename__ = "cart_items"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     cart_id = Column(UUID(as_uuid=True), ForeignKey("carts.id"), nullable=False)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=True)
@@ -81,9 +75,8 @@ class CartItem(Base):
     # Additional data (e.g., customizations, gift wrapping)
     item_metadata = Column(JSONB, nullable=True)
 
-    # Metadata
+    # Activity tracking
     added_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     cart = relationship("Cart", back_populates="items")

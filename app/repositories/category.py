@@ -23,23 +23,29 @@ class CategoryRepository(BaseRepository[Category, CategoryCreate, CategoryUpdate
         """
         Get a category with its children.
         """
-        return (
-            db.query(Category)
-            .filter(Category.id == id)
-            .options(joinedload(Category.children))
-            .first()
-        )
+        # Get the category first
+        category = db.query(Category).filter(Category.id == id).first()
+        
+        if category:
+            # Manually get children
+            children = db.query(Category).filter(Category.parent_id == id).all()
+            setattr(category, 'children', children)
+            
+        return category
 
     def get_by_slug_with_children(self, db: Session, slug: str) -> Optional[Category]:
         """
         Get a category by slug with its children.
         """
-        return (
-            db.query(Category)
-            .filter(Category.slug == slug)
-            .options(joinedload(Category.children))
-            .first()
-        )
+        # Get the category first
+        category = db.query(Category).filter(Category.slug == slug).first()
+        
+        if category:
+            # Manually get children
+            children = db.query(Category).filter(Category.parent_id == category.id).all()
+            setattr(category, 'children', children)
+            
+        return category
 
     def get_root_categories(self, db: Session) -> List[Category]:
         """
@@ -56,14 +62,25 @@ class CategoryRepository(BaseRepository[Category, CategoryCreate, CategoryUpdate
         """
         Get the complete category tree.
         """
-        # Get all root categories with children loaded
-        return (
+        # Get all root categories
+        root_categories = (
             db.query(Category)
             .filter(Category.parent_id.is_(None))
-            .options(joinedload(Category.children))
             .order_by(Category.display_order.asc(), Category.name.asc())
             .all()
         )
+        
+        # For each root category, get its children
+        for category in root_categories:
+            children = db.query(Category).filter(Category.parent_id == category.id).all()
+            setattr(category, 'children', children)
+            
+            # For each child, get its children (grandchildren of root)
+            for child in children:
+                grandchildren = db.query(Category).filter(Category.parent_id == child.id).all()
+                setattr(child, 'children', grandchildren)
+        
+        return root_categories
 
     def create_with_slug_check(self, db: Session, obj_in: CategoryCreate) -> Category:
         """
